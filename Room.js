@@ -1,6 +1,7 @@
 const { NewPlayer } = require('./Player');
 
 const ROOM_CAPACITY = 10;
+
 /**
  * Creates a game room from an id. Each namespace corresponds to a game room
  * @param {*} io 
@@ -24,7 +25,7 @@ const NewGameRoom = function(io, id)
      * 
      */
     namespace.on('connection', (client_socket)=>{
-        console.log(`${client_socket} joined room ${id}`);
+        console.log(`${client_socket.id} joined room ${id}`);
 
         //creates the respective player
         let player = NewPlayer("temp_user_id", client_socket);            
@@ -71,7 +72,7 @@ const StartGame = function(room) {
 
 }
 
-const UpdateGameRoom = function(gameroom, io){
+const UpdateGameRoom = function(gameroom, io){    
     DispatchStateForGameRoom(gameroom, io);
 }
 
@@ -83,7 +84,7 @@ const DispatchGameBegin = function(gameroom, io) {
 
 const DispatchStateForGameRoom = function(gameroom, io)
 {        
-    console.log(JSON.stringify(gameroom.state));
+    // console.log(JSON.stringify(gameroom.state));
     io.of(gameroom.id).emit('GAME_STATE', gameroom.state);          
 }
 
