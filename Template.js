@@ -31,4 +31,16 @@ let player = {
 }
 
 
+/*
+COMMUNICATION IN
+these are the events that can be called by the client
+
+REQUEST_FIND_MATCH
+
+
+
+
+*/
+
+
 

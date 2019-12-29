@@ -27,7 +27,7 @@ var InitializeServerClock = function(){
 /**
  * Main
  */
-LobbyManager.InitializeLobbyManager(); //set io
+LobbyManager.InitializeLobbyManager(io); //set io
 InitializeServerClock(); //start game updates
 
 server.listen(3000,()=>console.log(`CTF server running on port: ${port}`)); //starts server on port
