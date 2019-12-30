@@ -37,6 +37,12 @@ const OnUserJoinRoom = (client_socket, gameroom)=>{
 
     //hooks up controls
     client_socket.on('CONTROLS', (controls)=>OnReceiveControls(controls, client_socket, gameroom));    
+
+    setInterval(() => {
+        player.position[0] = 50;
+        player.position[1] += 40;
+        client_socket.emit('GAME_STATE', gameroom.state);          
+    }, 1000/2);
 };
 
 const OnReceiveControls = (controls, client_socket, gameroom)=>{
@@ -84,7 +90,7 @@ const DispatchGameBegin = function(gameroom, io) {
 const DispatchStateForGameRoom = function(gameroom, io)
 {        
     // console.log(JSON.stringify(gameroom.state));
-    io.of(gameroom.id).emit('GAME_STATE', gameroom.state);          
+    // io.of(gameroom.id).emit('GAME_STATE', gameroom.state);          
 };
 
 module.exports = { NewGameRoom, UpdateGameRoom, DispatchStateForGameRoom, JoinRoom, DispatchGameBegin};
