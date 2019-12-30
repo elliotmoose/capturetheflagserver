@@ -26,7 +26,7 @@ const NewGameRoom = function(io, id)
     return gameroom;
 }
 const OnUserJoinRoom = (client_socket, gameroom)=>{
-    console.log(`${client_socket.id} joined room ${id}`);
+    console.log(`${client_socket.id} joined room ${gameroom.id}`);
 
     //creates the respective player 
     //TODO: client_socket is id for now. In the future it should be their user account id
