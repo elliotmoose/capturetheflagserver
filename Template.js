@@ -14,28 +14,49 @@
  * a game room is a single game instance.
  */
 let room = {
-    id: "room_generated_uuid",
+    id: "room_generated_uuid", //also the namespace id
     state: {
         in_progress: false,
         players: [],
         score: [0, 0],
         flags: []
-    },
-    namespace: 'namespace_generated_uuid'
+    },    
 }
 
 let player = {
+    id: 'player_user_id',
+    username: 'player_user_name',
     position: [0, 0],
     max_stamina: 100,
-    current_stamina: 100
+    current_stamina: 100,
+    sprint_speed: 10,
+    default_speed: 4,
+    current_speed: 4, 
+    size: 20, //player radius
+    reach: 10, //action radius = size+reach
+    action: false, //catch/take flag/pass flag
+    sprint: false
 }
 
+let flag = {
+    position: [0, 0],
+    carrier: null
+}
 
 /*
-COMMUNICATION IN
-these are the events that can be called by the client
+COMMUNICATION
+these are the events that can be called by the client/server
 
-REQUEST_FIND_MATCH
+IN: REQUEST_FIND_MATCH //call from client to find a match
+OUT: JOIN_ROOM_CONFIRMED //call to client to join namespace
+IN: CONTROLS
+OUT: GAME_STATE
+
+
+
+
+future works:
+REQUEST_JOIN_ROOM //custom game rooms
 
 
 
