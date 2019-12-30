@@ -6,7 +6,7 @@ const port = 3000;
 const LobbyManager = require('./LobbyManager');
 const { NewPlayer } = require('./Player');
 
-const FPS = 20; //server frame rate
+const FPS = 20//20; //server frame rate
 
 /**
  * When a client connects to this lobby server

@@ -5,7 +5,7 @@
 const NewPlayer = function(user_id, client_socket){
     return {
         username : '',
-        user_id: user_id,
+        id: user_id,
         socket_id: client_socket.id,
         position: [0,0], //x, y
         max_stamina: 100,
