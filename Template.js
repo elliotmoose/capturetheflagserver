@@ -2,12 +2,11 @@
  * This is to outline the standard objects that are:
  * 1. Sent across the network.
  * 2. Used on server side
- * 
+ *
  * 1. GAME_STATE (out)
  * 2. CONTROLS (in)
- * 3. 
+ * 3.
  */
-
 
 /**
  * ROOM
@@ -19,38 +18,39 @@ let room = {
         in_progress: false,
         players: [],
         score: [0, 0],
-        flags: []
-    },    
-}
+        flags: [],
+        timestamp: Date.now() // Timestamp to be updated whenever the room is updated. Used for deltaTime calculation
+    }
+};
 
 let player = {
-    id: 'player_user_id',
-    username: 'player_user_name',
+    id: "player_user_id",
+    username: "player_user_name",
     position: [0, 0],
     max_stamina: 100,
     current_stamina: 100,
     sprint_speed: 10,
     default_speed: 4,
-    current_speed: 4, 
+    current_speed: 4,
     size: 20, //player radius
     reach: 10, //action radius = size+reach
     action: false, //catch/take flag/pass flag
     sprint: false,
     team: 0,
     prison: false,
-    controls : {
+    controls: {
         angle: null,
         action: false,
         sprint: false,
-        timestamp: Date.now() 
-    }    
-}
+        timestamp: Date.now()
+    }
+};
 
 let flag = {
     position: [0, 0],
     carrier_id: null,
     team: 0
-}
+};
 
 /*
 COMMUNICATION
@@ -71,6 +71,3 @@ REQUEST_JOIN_ROOM //custom game rooms
 
 
 */
-
-
-
