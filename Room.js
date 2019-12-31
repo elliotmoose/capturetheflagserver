@@ -18,7 +18,19 @@ const NewGameRoom = function(io, id) {
         in_progress: false,
         state: {
             players: [],
-            flags: [],
+            flags: [{
+                id: 'flag_0',
+                position: [750, 2500],
+                radius: 15,
+                carrier_id: null,
+                team: 0
+            },{
+                id: 'flag_1',
+                position: [750, 0],
+                radius: 15,
+                carrier_id: null,
+                team: 1
+            }],
             score: [0, 0],
             timestamp: Date.now()
         },
@@ -120,6 +132,24 @@ const UpdatePlayerPositions = function(gameroom, deltaTime) {
     }
 };
 
+const UpdateFlagPositions = function(gameroom, deltaTime) {
+    let players = gameroom.state.players;
+    for(let flag of gameroom.state.flags) {
+        let pickup_players = PlayesrInRange(players, flag.position, flag.radius).filter(p=> p.team != flag.team);
+        if(pickup_players.length != 0) {            
+            flag.carrier_id = pickup_players[0].id;
+        }
+        
+        if(flag.carrier_id) {
+            let player = players.find(p=>p.id == flag.carrier_id);
+            if(player) {
+                flag.position = player.position;
+            }
+        }
+    }
+
+}
+
 /**
  * Updates the stamina of players
  * @param {*} gameroom
@@ -212,8 +242,9 @@ const UpdateGameRoom = function(gameroom, io) {
     gameroom.state.timestamp = Date.now();
     UpdateControlsAge(gameroom);
     UpdateActions(gameroom);
-    UpdatePlayerPositions(gameroom, deltaTime);
     UpdatePlayerSprint(gameroom, deltaTime);
+    UpdatePlayerPositions(gameroom, deltaTime);
+    UpdateFlagPositions(gameroom, deltaTime);
     DispatchStateForGameRoom(gameroom, io);
 };
 
@@ -225,7 +256,7 @@ const DispatchGameBegin = function(gameroom, io) {
     }
 };
 
-const DispatchStateForGameRoom = function(gameroom, io) {    
+const DispatchStateForGameRoom = function(gameroom, io) {        
     io.of(gameroom.id).emit("GAME_STATE", gameroom.state);
 };
 

@@ -47,6 +47,8 @@ let player = {
 };
 
 let flag = {
+    id: 'flag_0',
+    radius: 15,
     position: [0, 0],
     carrier_id: null,
     team: 0
