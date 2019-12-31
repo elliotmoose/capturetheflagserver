@@ -35,12 +35,21 @@ let player = {
     size: 20, //player radius
     reach: 10, //action radius = size+reach
     action: false, //catch/take flag/pass flag
-    sprint: false
+    sprint: false,
+    team: 0,
+    prison: false,
+    controls : {
+        angle: null,
+        action: false,
+        sprint: false,
+        timestamp: Date.now() 
+    }    
 }
 
 let flag = {
     position: [0, 0],
-    carrier: null
+    carrier_id: null,
+    team: 0
 }
 
 /*
