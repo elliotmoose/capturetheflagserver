@@ -1,28 +1,28 @@
-const express = require('express');
+const express = require("express");
 const app = express();
-const server = require('http').createServer(app);
-const io = require('socket.io').listen(server);
+const server = require("http").createServer(app);
+const io = require("socket.io").listen(server);
 const port = 3000;
-const LobbyManager = require('./LobbyManager');
-const { NewPlayer } = require('./Player');
+const LobbyManager = require("./LobbyManager");
+const { NewPlayer } = require("./Player");
 
-const FPS = 20//20; //server frame rate
+const FPS = 20; //20; //server frame rate
 
 /**
  * When a client connects to this lobby server
  */
-io.on('connection', (socket) => {
-    LobbyManager.OnUserJoinLobby(socket);    
+io.on("connect", socket => {
+    LobbyManager.OnUserJoinLobby(socket);
 });
 
 /**
  * Kicks of server cycle to run every frame
  */
-var InitializeServerClock = function(){
+var InitializeServerClock = function() {
     setInterval(() => {
         LobbyManager.UpdateGameRooms();
-    }, 1000/FPS);
-}
+    }, 1000 / FPS);
+};
 
 /**
  * Main
@@ -30,7 +30,7 @@ var InitializeServerClock = function(){
 LobbyManager.InitializeLobbyManager(io); //set io
 InitializeServerClock(); //start game updates
 
-server.listen(3000,()=>console.log(`CTF server running on port: ${port}`)); //starts server on port
+server.listen(3000, () => console.log(`CTF server running on port: ${port}`)); //starts server on port
 
 // io.on('connection', function(socket){
 //     socket.emit('request', /* */); // emit an event to the socket
