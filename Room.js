@@ -54,28 +54,7 @@ const OnUserJoinRoom = (client_socket, gameroom) => {
  * @param {*} gameroom
  */
 const OnReceiveControls = (controls, client_socket, gameroom) => {
-    let currentPlayer = gameroom.state.players.filter(
-        player => player.socket_id == client_socket.id
-    )[0];
-
-    if (controls.sprint) {
-        if (currentPlayer.current_stamina > 0) {
-            currentPlayer.current_speed = currentPlayer.sprint_speed;
-            currentPlayer.sprint = true;
-        } else {
-            currentPlayer.current_speed = currentPlayer.default_speed;
-            currentPlayer.sprint = false;
-        }
-    } else {
-        currentPlayer.current_speed = currentPlayer.default_speed;
-        currentPlayer.sprint = false;
-    }
-
-    if (controls.action) {
-        currentPlayer.action = true;
-    } else {
-        currentPlayer.action = false;
-    }
+    let currentPlayer = gameroom.state.players.filter(player => player.socket_id == client_socket.id)[0];    
 
     currentPlayer.controls = {
         ...controls,
@@ -112,13 +91,17 @@ const UpdateControlsAge = function(gameroom) {
     let players = gameroom.state.players;
     for (let player of players) {
         if (Date.now() - player.controls.timestamp <= CONTROLS_AGE_THRESHOLD) {
-            //still young
+            //still young            
         } else {
             //too old, reset
             player.controls.angle = null;
             player.controls.action = false;
             player.controls.sprint = false;
         }
+
+        player.angle = player.controls.angle;
+        player.action = player.controls.action;
+        player.sprint = player.controls.sprint;
     }
 };
 
@@ -130,19 +113,9 @@ const UpdateControlsAge = function(gameroom) {
 // TODO: Determine good number to divide deltaTime by
 const UpdatePlayerPositions = function(gameroom, deltaTime) {
     for (let player of gameroom.state.players) {
-        if (player.controls.angle) {
-            let x =
-                player.position[0] +
-                (player.current_speed *
-                    Math.cos(player.controls.angle) *
-                    deltaTime) /
-                    10;
-            let y =
-                player.position[1] +
-                (player.current_speed *
-                    Math.sin(player.controls.angle) *
-                    deltaTime) /
-                    10;
+        if (player.angle) {
+            let x = player.position[0] + (player.current_speed * Math.cos(player.angle) * deltaTime) / 10;
+            let y = player.position[1] + (player.current_speed * Math.sin(player.angle) * deltaTime) / 10;
             player.position = [x, y];
         }
     }
@@ -154,22 +127,20 @@ const UpdatePlayerPositions = function(gameroom, deltaTime) {
  * @param {number} deltaTime
  */
 // TODO: Determine good number to divide deltaTime by
-const UpdatePlayerStaminas = (gameroom, deltaTime) => {
+const UpdatePlayerSprint = (gameroom, deltaTime) => {
     for (let player of gameroom.state.players) {
-        if (player.controls.sprint) {
+        if (player.sprint) {
             if (player.current_stamina > 0) {
-                player.current_stamina = Math.max(
-                    player.current_stamina - deltaTime / 10,
-                    0
-                );
+                player.current_speed = player.sprint_speed;
+                player.current_stamina = Math.max(player.current_stamina - deltaTime / 10, 0);
             }
-        } else {
-            if (player.current_stamina < player.max_stamina) {
-                player.current_stamina = Math.min(
-                    player.current_stamina + deltaTime / 10,
-                    player.max_stamina
-                );
+            else {
+                player.current_speed = player.default_speed;
             }
+        } 
+        else {
+            player.current_speed = player.default_speed;
+            player.current_stamina = Math.min(player.current_stamina + deltaTime / 10, player.max_stamina);            
         }
     }
 };
@@ -243,7 +214,7 @@ const UpdateGameRoom = function(gameroom, io) {
     UpdateControlsAge(gameroom);
     UpdateActions(gameroom);
     UpdatePlayerPositions(gameroom, deltaTime);
-    UpdatePlayerStaminas(gameroom, deltaTime);
+    UpdatePlayerSprint(gameroom, deltaTime);
     DispatchStateForGameRoom(gameroom, io);
 };
 
