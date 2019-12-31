@@ -46,6 +46,27 @@ const OnUserJoinRoom = (client_socket, gameroom)=>{
         player.position[1] += 60;
         client_socket.emit('GAME_STATE', gameroom.state);          
     }, 1000/2);
+
+    // setTimeout(() => {
+    //     player.position[0] = 50;
+    //     player.position[1] += 80;
+    //     client_socket.emit('GAME_STATE', gameroom.state);          
+    //     setTimeout(() => {
+    //         player.position[0] = 50;
+    //         player.position[1] += 80;
+    //         client_socket.emit('GAME_STATE', gameroom.state);          
+    //         setTimeout(() => {
+    //             player.position[0] = 50;
+    //             player.position[1] += 40;
+    //             client_socket.emit('GAME_STATE', gameroom.state);          
+    //             setTimeout(() => {
+    //                 player.position[0] = 50;
+    //                 player.position[1] += 80;
+    //                 client_socket.emit('GAME_STATE', gameroom.state);          
+    //             }, 1000);
+    //         }, 500);
+    //     }, 1000);
+    // }, 1000);
 };
 
 const OnReceiveControls = (controls, client_socket, gameroom)=>{
@@ -98,11 +119,11 @@ const UpdateControlsAge = function(gameroom) {
     }
 }
 
-const UpdatePlayerPositions = function(gameroom, io){
+const UpdatePlayerPositions = function(gameroom){
 
 }
 
-const UpdateActions = function(gameroom, io) {
+const UpdateActions = function(gameroom) {
     let players = gameroom.state.players;
     let flags = gameroom.state.flags;
     let action_players = players.filter(p=>p.action == true);
@@ -157,6 +178,8 @@ const UpdateActions = function(gameroom, io) {
 
 const UpdateGameRoom = function(gameroom, io){        
     UpdateControlsAge(gameroom);
+    UpdatePlayerPositions(gameroom);
+    UpdateActions(gameroom);
     DispatchStateForGameRoom(gameroom, io);
 };
 
