@@ -98,8 +98,7 @@ const UpdateControlsAge = function(gameroom) {
             player.controls.action = false;
             player.controls.sprint = false;
         }
-
-        player.angle = player.controls.angle;
+        
         player.action = player.controls.action;
         player.sprint = player.controls.sprint;
     }
@@ -113,9 +112,9 @@ const UpdateControlsAge = function(gameroom) {
 // TODO: Determine good number to divide deltaTime by
 const UpdatePlayerPositions = function(gameroom, deltaTime) {
     for (let player of gameroom.state.players) {
-        if (player.angle) {
-            let x = player.position[0] + (player.current_speed * Math.cos(player.angle) * deltaTime) / 10;
-            let y = player.position[1] + (player.current_speed * Math.sin(player.angle) * deltaTime) / 10;
+        if (player.controls.angle) {
+            let x = player.position[0] + (player.current_speed * Math.cos(player.controls.angle) * deltaTime) / 10;
+            let y = player.position[1] + (player.current_speed * Math.sin(player.controls.angle) * deltaTime) / 10;
             player.position = [x, y];
         }
     }
