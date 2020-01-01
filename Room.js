@@ -215,15 +215,10 @@ const UpdatePlayerSprint = (gameroom, deltaTime) => {
 const UpdateActions = function(gameroom) {
     let players = gameroom.state.players;
     let flags = gameroom.state.flags;
-    let action_players = players.filter(p => p.action == true);
+    let action_players = players.filter(p => p.action == true);    
 
-    for (let player_with_action of action_players) {
-        let controls = player.controls;
-        let players_in_range = PlayersInRange(
-            players,
-            player_with_action.position,
-            player_with_action.reach
-        );
+    for (let player_with_action of action_players) {        
+        let players_in_range = PlayersInRange(players, player_with_action.position, player_with_action.reach);
 
         //1. Catching people
         //2. Freeing teammates
@@ -231,33 +226,26 @@ const UpdateActions = function(gameroom) {
         //4. Passing flag
 
         players_in_range.forEach(other_player => {
+            if(other_player == player_with_action) {return;} //cannot interact with self
             //1. Catching people
-            if (other_player.team != action_players.team) {
+            if (player_with_action.team != other_player.team) {
                 //check where point of contact is
-                let action_player_to_other_vector = Vector2Subtract(
-                    other_player.position,
-                    player_with_action.position
-                ); //this to other vector
-                let normalized_vector = Vector2Normalize(
-                    action_player_to_other_vector
-                );
-                let point_of_contact = Vector2Addition(
-                    player_with_action,
-                    Vector2Multiply(normalized_vector, player_with_action.reach)
-                );
-                let team_territory = TeamTerrirtoryForPosition(
-                    point_of_contact
-                );
+                let action_player_to_other_vector = Vector2Subtract(other_player.position, player_with_action.position); //this to other vector
+                let normalized_vector = Vector2Normalize(action_player_to_other_vector);
+                let point_of_contact = Vector2Addition(player_with_action, Vector2Multiply(normalized_vector, player_with_action.reach));
+                let team_territory = TeamTerrirtoryForPosition(point_of_contact);
 
                 //because we are enemies, somebody must be caught
                 if (player_with_action.team == team_territory) {
                     //player who cast action is that catcher
                     other_player.prison = true;
-                } else {
+                } 
+                else {
                     //player who cast action tried to catch someone in enemy zone
                     player_with_action.prison = true;
                 }
-            } else {
+            } 
+            else {
                 //if teammate in prisonm free him
                 if (other_player.prison) {
                     other_player.prison = false;
