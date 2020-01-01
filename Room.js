@@ -1,5 +1,7 @@
 const { NewPlayer } = require("./Player");
 const { Vector2Subtract, Vector2Addition, Vector2Multiply, Vector2Magnitude, Vector2Normalize } = require('./helpers/Vectors');
+const { NewFlag } = require('./Flag');
+
 const ROOM_CAPACITY = 10;
 const CONTROLS_AGE_THRESHOLD = 700; //0.7s
 const MAP_WIDTH = 1500;
@@ -20,19 +22,10 @@ const NewGameRoom = function(io, id) {
         in_progress: false,
         state: {
             players: [],
-            flags: [{
-                id: 'flag_0',
-                position: BaseCenterForTeam(0),
-                radius: 15,
-                carrier_id: null,
-                team: 0
-            },{
-                id: 'flag_1',
-                position: BaseCenterForTeam(1),
-                radius: 15,
-                carrier_id: null,
-                team: 1
-            }],
+            flags: [
+                NewFlag(0, BaseCenterForTeam(0)),
+                NewFlag(1, BaseCenterForTeam(1))
+            ],
             score: [0, 0],
             timestamp: Date.now()
         },

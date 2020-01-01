@@ -13,7 +13,7 @@ const NewPlayer = function(user_id, client_socket){
         sprint_speed: 10,
         default_speed: 4,
         current_speed: 4, 
-        size: 20, //player radius
+        radius: 20, //player radius
         reach: 10, //action radius = size+reach
         action: false, //catch/take flag/pass flag
         sprint: false,
