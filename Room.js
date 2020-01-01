@@ -4,6 +4,8 @@ const ROOM_CAPACITY = 10;
 const CONTROLS_AGE_THRESHOLD = 700; //0.7s
 const MAP_WIDTH = 1500;
 const MAP_HEIGHT = 2500;
+const BASE_MARGIN = 150;
+const BASE_RADIUS = 40; //prison radius
 
 /**
  * Creates a game room from an id. Each namespace corresponds to a game room
@@ -20,13 +22,13 @@ const NewGameRoom = function(io, id) {
             players: [],
             flags: [{
                 id: 'flag_0',
-                position: [750, 2500],
+                position: BaseCenterForTeam(0),
                 radius: 15,
                 carrier_id: null,
                 team: 0
             },{
                 id: 'flag_1',
-                position: [750, 0],
+                position: BaseCenterForTeam(1),
                 radius: 15,
                 carrier_id: null,
                 team: 1
@@ -127,6 +129,18 @@ const UpdatePlayerPositions = function(gameroom, deltaTime) {
         if (player.controls.angle) {
             let x = player.position[0] + (player.current_speed * Math.cos(player.controls.angle) * deltaTime) / 10;
             let y = player.position[1] + (player.current_speed * Math.sin(player.controls.angle) * deltaTime) / 10;
+            
+            if(player.prison) {
+                let opponent_team = player.team == 0 ? 1 : 0;
+                let prison_position = BaseCenterForTeam(opponent_team);
+                let vector_base_to_player = Vector2Subtract([x,y], prison_position);                
+                let dist_from_center = Math.min(BASE_RADIUS, Vector2Magnitude(vector_base_to_player));                
+                let new_pos_angle = Math.atan2(vector_base_to_player[1],vector_base_to_player[0]);
+                x = prison_position[0] + dist_from_center * Math.cos(new_pos_angle);
+                y = prison_position[1] + dist_from_center * Math.sin(new_pos_angle);
+            }
+
+
             player.position = [x, y];
         }
     }
@@ -143,14 +157,14 @@ const UpdateFlagPositions = function(gameroom, deltaTime) {
     for(let flag of gameroom.state.flags) {
         
         //if has a carrier, follow carrier
-        if(flag.carrier_id) {
+        if(flag.carrier_id != null) {            
             let player = players.find(p=>p.id == flag.carrier_id);
             if(player) {
                 flag.position = player.position;
             }
         }
-        else { //check for pickups if no carrier            
-            let pickup_players = PlayesrInRange(players, flag.position, flag.radius).filter(p=> p.team != flag.team);
+        else { //check for pickups if no carrier                        
+            let pickup_players = PlayersInRange(players, flag.position, flag.radius).filter(p=> p.team != flag.team);            
             if(pickup_players.length != 0) {            
                 flag.carrier_id = pickup_players[0].id;
             }            
@@ -190,7 +204,7 @@ const UpdateActions = function(gameroom) {
 
     for (let player_with_action of action_players) {
         let controls = player.controls;
-        let players_in_range = PlayesrInRange(
+        let players_in_range = PlayersInRange(
             players,
             player_with_action.position,
             player_with_action.reach
@@ -270,7 +284,7 @@ const DispatchStateForGameRoom = function(gameroom, io) {
 };
 
 //#region helper functions
-const PlayesrInRange = function(players, position, radius) {
+const PlayersInRange = function(players, position, radius) {
     return players.filter(player => {
         let x_dist = player.position[0] - position[0];
         let y_dist = player.position[1] - position[1];
@@ -290,6 +304,10 @@ const TeamTerrirtoryForPosition = function(position) {
         return 1; //team 1 is top half of map
     }
 };
+
+const BaseCenterForTeam = function(team) {
+    return team == 0 ? [MAP_WIDTH/2, MAP_HEIGHT - BASE_MARGIN] : [MAP_WIDTH/2, BASE_MARGIN];
+}
 
 //#region math
 /**
