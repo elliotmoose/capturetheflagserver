@@ -129,20 +129,20 @@ const UpdatePlayerPositions = function(gameroom, deltaTime) {
         }
 
         // Map boundaries
-        x = Math.max(x, player.size); // Left wall
-        x = Math.min(x, MAP_WIDTH - player.size); // Right wall
-        y = Math.max(y, player.size); // Top wall
-        y = Math.min(y, MAP_HEIGHT - player.size) // Bottom wall
+        x = Math.max(x, player.radius); // Left wall
+        x = Math.min(x, MAP_WIDTH - player.radius); // Right wall
+        y = Math.max(y, player.radius); // Top wall
+        y = Math.min(y, MAP_HEIGHT - player.radius) // Bottom wall
 
         // Prevent player from entering own base. 'Push' the player out radially from the center of the base if he is inside.
         let base_position = BaseCenterForTeam(player.team);
         let vector_base_to_player = Vector2Subtract([x,y], base_position);
         let dist_from_base_center = Vector2Magnitude(vector_base_to_player);
 
-        if(dist_from_base_center < BASE_RADIUS + player.size) {
+        if(dist_from_base_center < BASE_RADIUS + player.radius) {
             let new_pos_angle = Math.atan2(vector_base_to_player[1], vector_base_to_player[0]);
-            y = base_position[1] + Math.sin(new_pos_angle) * (BASE_RADIUS + player.size);
-            x = base_position[0] + Math.cos(new_pos_angle) * (BASE_RADIUS + player.size);
+            y = base_position[1] + Math.sin(new_pos_angle) * (BASE_RADIUS + player.radius);
+            x = base_position[0] + Math.cos(new_pos_angle) * (BASE_RADIUS + player.radius);
         }
 
         if(player.prison) {
