@@ -119,23 +119,45 @@ const UpdateControlsAge = function(gameroom) {
 // TODO: Determine good number to divide deltaTime by
 const UpdatePlayerPositions = function(gameroom, deltaTime) {
     for (let player of gameroom.state.players) {
-        if (player.controls.angle) {
-            let x = player.position[0] + (player.current_speed * Math.cos(player.controls.angle) * deltaTime) / 10;
-            let y = player.position[1] + (player.current_speed * Math.sin(player.controls.angle) * deltaTime) / 10;
-            
-            if(player.prison) {
-                let opponent_team = player.team == 0 ? 1 : 0;
-                let prison_position = BaseCenterForTeam(opponent_team);
-                let vector_base_to_player = Vector2Subtract([x,y], prison_position);                
-                let dist_from_center = Math.min(BASE_RADIUS, Vector2Magnitude(vector_base_to_player));                
-                let new_pos_angle = Math.atan2(vector_base_to_player[1],vector_base_to_player[0]);
-                x = prison_position[0] + dist_from_center * Math.cos(new_pos_angle);
-                y = prison_position[1] + dist_from_center * Math.sin(new_pos_angle);
-            }
 
+        let x = player.position[0];
+        let y = player.position[1];
 
-            player.position = [x, y];
+        if(player.controls.angle) {
+            x = x + (player.current_speed * Math.cos(player.controls.angle) * deltaTime) / 10;
+            y = y + (player.current_speed * Math.sin(player.controls.angle) * deltaTime) / 10;
         }
+
+        // Map boundaries
+        x = Math.max(x, player.size); // Left wall
+        x = Math.min(x, MAP_WIDTH - player.size); // Right wall
+        y = Math.max(y, player.size); // Top wall
+        y = Math.min(y, MAP_HEIGHT - player.size) // Bottom wall
+
+        // Prevent player from entering own base. 'Push' the player out radially from the center of the base if he is inside.
+        let base_position = BaseCenterForTeam(player.team);
+        let vector_base_to_player = Vector2Subtract([x,y], base_position);
+        let dist_from_base_center = Vector2Magnitude(vector_base_to_player);
+
+        if(dist_from_base_center < BASE_RADIUS + player.size) {
+            let new_pos_angle = Math.atan2(vector_base_to_player[1], vector_base_to_player[0]);
+            y = base_position[1] + Math.sin(new_pos_angle) * (BASE_RADIUS + player.size);
+            x = base_position[0] + Math.cos(new_pos_angle) * (BASE_RADIUS + player.size);
+        }
+
+        if(player.prison) {
+            let opponent_team = player.team == 0 ? 1 : 0;
+            let prison_position = BaseCenterForTeam(opponent_team);
+            let vector_prison_to_player = Vector2Subtract([x,y], prison_position);                
+            let dist_from_center = Math.min(BASE_RADIUS, Vector2Magnitude(vector_prison_to_player));                
+            let new_pos_angle = Math.atan2(vector_prison_to_player[1],vector_prison_to_player[0]);
+            x = prison_position[0] + dist_from_center * Math.cos(new_pos_angle);
+            y = prison_position[1] + dist_from_center * Math.sin(new_pos_angle);
+        }
+
+        
+
+        player.position = [x, y];
     }
 };
 
