@@ -146,10 +146,10 @@ const UpdatePlayerPositions = function(gameroom, deltaTime) {
         let vector_base_to_player = Vector2Subtract([x,y], base_position);
         let dist_from_base_center = Vector2Magnitude(vector_base_to_player);
 
-        if(dist_from_base_center < BASE_RADIUS) {
+        if(dist_from_base_center < BASE_RADIUS + player.size) {
             let new_pos_angle = Math.atan2(vector_base_to_player[1], vector_base_to_player[0]);
-            y = base_position[1] + Math.sin(new_pos_angle) * BASE_RADIUS;
-            x = base_position[0] + Math.cos(new_pos_angle) * BASE_RADIUS;
+            y = base_position[1] + Math.sin(new_pos_angle) * (BASE_RADIUS + player.size);
+            x = base_position[0] + Math.cos(new_pos_angle) * (BASE_RADIUS + player.size);
         }
 
         if(player.prison) {
