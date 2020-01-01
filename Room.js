@@ -1,5 +1,5 @@
 const { NewPlayer } = require("./Player");
-
+const { Vector2Subtract, Vector2Addition, Vector2Multiply, Vector2Magnitude, Vector2Normalize } = require('./helpers/Vectors');
 const ROOM_CAPACITY = 10;
 const CONTROLS_AGE_THRESHOLD = 700; //0.7s
 const MAP_WIDTH = 1500;
@@ -284,6 +284,12 @@ const DispatchStateForGameRoom = function(gameroom, io) {
 };
 
 //#region helper functions
+/**
+ * Finds a list of players in the radius from the position given
+ * @param {*} players 
+ * @param {*} position 
+ * @param {*} radius 
+ */
 const PlayersInRange = function(players, position, radius) {
     return players.filter(player => {
         let x_dist = player.position[0] - position[0];
@@ -309,47 +315,6 @@ const BaseCenterForTeam = function(team) {
     return team == 0 ? [MAP_WIDTH/2, MAP_HEIGHT - BASE_MARGIN] : [MAP_WIDTH/2, BASE_MARGIN];
 }
 
-//#region math
-/**
- * a - b, where a and b are arrays of length 2
- * @param {Array} a
- * @param {Array} b
- */
-const Vector2Subtract = function(a, b) {
-    //a - b
-    return [a[0] - b[0], a[1] - b[1]];
-};
-
-/**
- * a + b, where a and b are arrays of length 2
- * @param {Array} a
- * @param {Array} b
- */
-const Vector2Addition = function(a, b) {
-    //a - b
-    return [a[0] + b[0], a[1] + b[1]];
-};
-
-/**
- * v * scale
- * @param {Array} v array of length 2
- * @param {number} scale number
- */
-const Vector2Multiply = function(v, scale) {
-    return [v[0] * scale, v[1] * scale];
-};
-
-const Vector2Magnitude = function(v) {
-    return Math.sqrt(Math.pow(v[0], 2) + Math.pow(v[1], 2));
-};
-
-const Vector2Normalize = function(v) {
-    //a - b
-    let magnitude = Vector2Magnitude(v);
-    return [v[0] / magnitude, v[1] / magnitude];
-};
-
-//#endregion
 
 //#endregion
 
