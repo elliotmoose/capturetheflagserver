@@ -50,4 +50,4 @@ const Vector2Normalize = function(v) {
     return [v[0] / magnitude, v[1] / magnitude];
 };
 
-module.exports = {Vector2Subtract, Vector2Addition, Vector2Multiply, Vector2Magnitude, Vector2Normalize };
+module.exports = { Vector2Subtract, Vector2Addition, Vector2Multiply, Vector2Magnitude, Vector2Normalize };
