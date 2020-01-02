@@ -24,8 +24,8 @@ const NewGameRoom = function(io, id) {
         state: {
             players: [],
             flags: [
-                NewFlag(0, BaseCenterForTeam(0)),
-                NewFlag(1, BaseCenterForTeam(1))
+                NewFlag(0, BasePositionForTeam(0)),
+                NewFlag(1, BasePositionForTeam(1))
             ],
             score: [0, 0],
             delta_time: 0,
@@ -33,8 +33,8 @@ const NewGameRoom = function(io, id) {
         },
         map: {
             bases: [
-                NewBase(0, BaseCenterForTeam(0)),
-                NewBase(1, BaseCenterForTeam(1))
+                NewBase(0, BasePositionForTeam(0)),
+                NewBase(1, BasePositionForTeam(1))
             ],
             bounds : {
                 width: MAP_WIDTH,
@@ -56,14 +56,17 @@ const OnUserJoinRoom = (client_socket, gameroom, io) => {
 
     //creates the respective player
     //TODO: client_socket is id for now. In the future it should be their user account id
-    let player = NewPlayer(client_socket.id, client_socket);
+    let team = gameroom.state.players.filter(p=>p.team == 0).length <= gameroom.state.players.filter(p=>p.team == 1) ? 0 : 1;
+    let player = NewPlayer(client_socket.id, client_socket, team);
+    player.position = SpawnPositionForTeam(player.team, player.radius, gameroom.map.bases[player.team].radius);
 
     //adds player to the room
     gameroom.state.players.push(player);        
-    
+
+        
     //hooks up controls
     client_socket.on("CONTROLS", controls => OnReceiveControls(controls, client_socket, gameroom));
-    client_socket.emit('MAP_DATA', gameroom.map);
+    client_socket.emit('INIT_MAP', gameroom.map);
 
     //initialize for client
     // if (gameroom.state.players.length == ROOM_CAPACITY) {
@@ -137,7 +140,7 @@ const UpdatePlayerPositions = function(gameroom) {
         y = Math.min(y, MAP_HEIGHT - player.radius) // Bottom wall
 
         // Prevent player from entering own base. 'Push' the player out radially from the center of the base if he is inside.
-        let base_position = BaseCenterForTeam(player.team);
+        let base_position = BasePositionForTeam(player.team);
         let base_radius = gameroom.map.bases[player.team].radius;
         let vector_base_to_player = Vector2Subtract([x,y], base_position);
         let dist_from_base_center = Vector2Magnitude(vector_base_to_player);
@@ -151,7 +154,7 @@ const UpdatePlayerPositions = function(gameroom) {
 
         if(player.prison) {
             let opponent_team = player.team == 0 ? 1 : 0;
-            let prison_position = BaseCenterForTeam(opponent_team);
+            let prison_position = BasePositionForTeam(opponent_team);
             let vector_prison_to_player = Vector2Subtract([x,y], prison_position);                
             let dist_from_center = Math.min(base_radius, Vector2Magnitude(vector_prison_to_player));                
             let new_pos_angle = Math.atan2(vector_prison_to_player[1],vector_prison_to_player[0]);
@@ -297,15 +300,12 @@ const UpdateGameRoom = function(gameroom, io) {
 const ResetPositions = function(gameroom) {
     
     for(let flag of gameroom.state.flags) {
-        flag.position = BaseCenterForTeam(flag.team);
+        flag.position = BasePositionForTeam(flag.team);
         flag.carrier_id = null;
     }
     
-    for(let player of gameroom.state.players) {
-        let base_center = BaseCenterForTeam(player.team);
-        let base_radius = gameroom.map.bases[player.team].radius;
-        let y_offset = player.team == 0 ? (base_radius + player.radius) : -(base_radius + player.radius);
-        player.position = Vector2Addition(base_center, [0, y_offset]);
+    for(let player of gameroom.state.players) {        
+        player.position = SpawnPositionForTeam(player.team, player.radius, gameroom.map.bases[player.team].radius);
         player.prison = false;
         player.sprint = false;
         player.current_stamina = player.max_stamina;
@@ -314,11 +314,6 @@ const ResetPositions = function(gameroom) {
 }
 
 //#endregion
-const DispatchStartGame = function(gameroom, io) {
-    for (let player of gameroom.state.players) {
-        io.to(player.socket_id).emit("GAME_INIT", gameroom.map);
-    }
-};
 
 const DispatchStateForGameRoom = function(gameroom, io) {        
     io.of(gameroom.id).emit("GAME_STATE", gameroom.state);
@@ -352,8 +347,14 @@ const TeamTerrirtoryForPosition = function(position) {
     }
 };
 
-const BaseCenterForTeam = function(team) {
+const BasePositionForTeam = function(team) {
     return team == 0 ? [MAP_WIDTH/2, MAP_HEIGHT - BASE_MARGIN] : [MAP_WIDTH/2, BASE_MARGIN];
+}
+
+const SpawnPositionForTeam = function(team, player_radius, base_radius) {
+    let base_center = BasePositionForTeam(team);        
+    let y_offset = team == 0 ? (base_radius + player_radius) : -(base_radius + player_radius);
+    return Vector2Addition(base_center, [0, y_offset]);
 }
 
 

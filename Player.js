@@ -2,7 +2,7 @@
  * Creates a template player
  * @param {*} client_socket 
  */
-const NewPlayer = function(user_id, client_socket){
+const NewPlayer = function(user_id, client_socket, team){
     return {
         username : 'john_doe',
         id: user_id,
@@ -17,7 +17,7 @@ const NewPlayer = function(user_id, client_socket){
         reach: 20, //action radius = size+reach
         action: false, //catch/take flag/pass flag
         sprint: false,
-        team: 0,
+        team: team,
         prison: false,
         controls : {
             angle: null,
