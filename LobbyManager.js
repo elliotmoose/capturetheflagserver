@@ -83,7 +83,10 @@ var RequestFindMatch = function(client_socket) {
 
     //TODO: clients are added in and immediately told that a match is found (TESTING)
     lobby_socket_ids.push(client_socket.id);
-    let new_room_id = PushLobbyToGameRoom();    
+    if(lobby_socket_ids.length == 2) {
+        let new_room_id = PushLobbyToGameRoom();    
+        console.log('Lobby pushed to game room');
+    }
 
     // let room = lobby_rooms[open_room_id];
     // let game_started = Room.JoinRoom(room, user_id, client_socket);
@@ -108,6 +111,8 @@ var PushLobbyToGameRoom = function() {
     for (let socket_id of lobby_socket_ids) {
         io.to(socket_id).emit("JOIN_ROOM_CONFIRMED", room_id);
     }
+
+    lobby_socket_ids = [];
 
     return room_id;
 };

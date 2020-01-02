@@ -66,6 +66,7 @@ const OnUserJoinRoom = (client_socket, gameroom, io) => {
         
     //hooks up controls
     client_socket.on("CONTROLS", controls => OnReceiveControls(controls, client_socket, gameroom));
+    client_socket.emit('BIND_PLAYER', client_socket.id);
     client_socket.emit('INIT_MAP', gameroom.map);
 
     //initialize for client
@@ -81,8 +82,8 @@ const OnUserJoinRoom = (client_socket, gameroom, io) => {
  * @param {*} gameroom
  */
 const OnReceiveControls = (controls, client_socket, gameroom) => {
-    let currentPlayer = gameroom.state.players.filter(player => player.socket_id == client_socket.id)[0];    
-
+    let currentPlayer = gameroom.state.players.filter(player => player.socket_id == client_socket.id)[0];        
+    
     currentPlayer.controls = {
         ...controls,
         timestamp: Date.now()
@@ -162,7 +163,7 @@ const UpdatePlayerPositions = function(gameroom) {
             y = prison_position[1] + dist_from_center * Math.sin(new_pos_angle);
         }
 
-        player.position = [x, y];
+        player.position = [x, y];        
     }
 };
 
