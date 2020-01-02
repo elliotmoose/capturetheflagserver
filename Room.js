@@ -157,7 +157,7 @@ const UpdatePlayerPositions = function(gameroom) {
             let opponent_team = player.team == 0 ? 1 : 0;
             let prison_position = BasePositionForTeam(opponent_team);
             let vector_prison_to_player = Vector2Subtract([x,y], prison_position);                
-            let dist_from_center = Math.min(base_radius, Vector2Magnitude(vector_prison_to_player));                
+            let dist_from_center = Math.min(base_radius - player.radius, Vector2Magnitude(vector_prison_to_player));                
             let new_pos_angle = Math.atan2(vector_prison_to_player[1],vector_prison_to_player[0]);
             x = prison_position[0] + dist_from_center * Math.cos(new_pos_angle);
             y = prison_position[1] + dist_from_center * Math.sin(new_pos_angle);
