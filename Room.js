@@ -246,11 +246,11 @@ const UpdateActions = function(gameroom) {
                 
                 //whoever is not in their territory in this interaction goes to jail
                 if (player_with_action.team != team_territory) {                    
-                    // player_with_action.prison = true;
+                    player_with_action.prison = true;
                 } 
 
                 if (other_player.team != team_territory) {                    
-                    // other_player.prison = true;
+                    other_player.prison = true;
                 }
             } 
             else {
