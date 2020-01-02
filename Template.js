@@ -21,7 +21,14 @@ let room = {
         flags: [],
         delta_time: 0,
         timestamp: Date.now() // Timestamp to be updated whenever the room is updated. Used for deltaTime calculation
-    }
+    },
+    map: {
+        bases: [],
+        bounds: {
+            width: 0,
+            height: 0
+        }
+    },
 };
 
 let player = {
@@ -55,6 +62,12 @@ let flag = {
     team: 0
 };
 
+let base = {
+    id: 'base_0',
+    radius: 24,
+    position: [0,0],
+    team: 0
+}
 /*
 COMMUNICATION
 these are the events that can be called by the client/server

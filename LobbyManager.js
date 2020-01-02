@@ -83,7 +83,7 @@ var RequestFindMatch = function(client_socket) {
 
     //TODO: clients are added in and immediately told that a match is found (TESTING)
     lobby_socket_ids.push(client_socket.id);
-    let new_room_id = PushLobbyToGameRoom();
+    let new_room_id = PushLobbyToGameRoom();    
 
     // let room = lobby_rooms[open_room_id];
     // let game_started = Room.JoinRoom(room, user_id, client_socket);
@@ -122,12 +122,6 @@ var CreateRoomInLobby = function() {
     let gameroom = Room.NewGameRoom(io, room_id);
     lobby_rooms[room_id] = gameroom;
     return room_id;
-};
-
-var StartGameForRoom = function(room) {
-    active_game_rooms[room.id] = room;
-    room.in_progress = true;
-    Room.DispatchGameBegin(room, io);
 };
 
 var UpdateGameRooms = function() {

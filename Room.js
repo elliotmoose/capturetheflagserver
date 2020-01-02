@@ -1,13 +1,14 @@
 const { NewPlayer } = require("./Player");
 const { Vector2Subtract, Vector2Addition, Vector2Multiply, Vector2Magnitude, Vector2Normalize } = require('./helpers/Vectors');
 const { NewFlag } = require('./Flag');
+const { NewBase } = require('./Base');
 
-const ROOM_CAPACITY = 10;
+// const ROOM_CAPACITY = 10;
+const ROOM_CAPACITY = 1; //TODO: only for testing purposes
 const CONTROLS_AGE_THRESHOLD = 700; //0.7s
 const MAP_WIDTH = 1500;
 const MAP_HEIGHT = 2500;
 const BASE_MARGIN = 150;
-const BASE_RADIUS = 40; //prison radius
 
 /**
  * Creates a game room from an id. Each namespace corresponds to a game room
@@ -30,16 +31,27 @@ const NewGameRoom = function(io, id) {
             delta_time: 0,
             timestamp: Date.now()
         },
+        map: {
+            bases: [
+                NewBase(0, BaseCenterForTeam(0)),
+                NewBase(1, BaseCenterForTeam(1))
+            ],
+            bounds : {
+                width: MAP_WIDTH,
+                height: MAP_HEIGHT
+            }
+        },
         namespace
     };
 
     namespace.on("connection", client_socket =>
-        OnUserJoinRoom(client_socket, gameroom)
+        OnUserJoinRoom(client_socket, gameroom, namespace)
     );
 
     return gameroom;
 };
-const OnUserJoinRoom = (client_socket, gameroom) => {
+
+const OnUserJoinRoom = (client_socket, gameroom, io) => {
     console.log(`${client_socket.id} joined room ${gameroom.id}`);
 
     //creates the respective player
@@ -47,12 +59,17 @@ const OnUserJoinRoom = (client_socket, gameroom) => {
     let player = NewPlayer(client_socket.id, client_socket);
 
     //adds player to the room
-    gameroom.state.players.push(player);
-
+    gameroom.state.players.push(player);        
+    
     //hooks up controls
     client_socket.on("CONTROLS", controls =>
         OnReceiveControls(controls, client_socket, gameroom)
     );
+
+    //initialize for client
+    if (gameroom.state.players.length == ROOM_CAPACITY) {
+        DispatchStartGame(gameroom, io);        
+    }
 };
 
 /**
@@ -69,27 +86,6 @@ const OnReceiveControls = (controls, client_socket, gameroom) => {
         timestamp: Date.now()
     };
 };
-
-/**
- *
- * @param {*} room
- * @param {*} user_id
- * @param {*} client_socket
- * @returns {boolean} returns if the room was filled and a room needs to be created
- */
-const JoinRoom = function(room, user_id, client_socket) {
-    let player = NewPlayer(user_id, client_socket);
-    room.state.players.push(player);
-
-    if (room.state.players.length == ROOM_CAPACITY) {
-        StartGame(room);
-        return true;
-    }
-
-    return false;
-};
-
-const StartGame = function(room) {};
 
 const UpdateDeltaTime = function(gameroom) {
     gameroom.state.delta_time = Date.now() - gameroom.state.timestamp;
@@ -143,26 +139,26 @@ const UpdatePlayerPositions = function(gameroom) {
 
         // Prevent player from entering own base. 'Push' the player out radially from the center of the base if he is inside.
         let base_position = BaseCenterForTeam(player.team);
+        let base_radius = gameroom.map.bases[player.team].radius;
         let vector_base_to_player = Vector2Subtract([x,y], base_position);
         let dist_from_base_center = Vector2Magnitude(vector_base_to_player);
-
-        if(dist_from_base_center < BASE_RADIUS + player.radius) {
+        
+        let closest_distance = base_radius + player.radius;
+        if(dist_from_base_center < closest_distance) {
             let new_pos_angle = Math.atan2(vector_base_to_player[1], vector_base_to_player[0]);
-            y = base_position[1] + Math.sin(new_pos_angle) * (BASE_RADIUS + player.radius);
-            x = base_position[0] + Math.cos(new_pos_angle) * (BASE_RADIUS + player.radius);
+            y = base_position[1] + Math.sin(new_pos_angle) * closest_distance;
+            x = base_position[0] + Math.cos(new_pos_angle) * closest_distance;
         }
 
         if(player.prison) {
             let opponent_team = player.team == 0 ? 1 : 0;
             let prison_position = BaseCenterForTeam(opponent_team);
             let vector_prison_to_player = Vector2Subtract([x,y], prison_position);                
-            let dist_from_center = Math.min(BASE_RADIUS, Vector2Magnitude(vector_prison_to_player));                
+            let dist_from_center = Math.min(base_radius, Vector2Magnitude(vector_prison_to_player));                
             let new_pos_angle = Math.atan2(vector_prison_to_player[1],vector_prison_to_player[0]);
             x = prison_position[0] + dist_from_center * Math.cos(new_pos_angle);
             y = prison_position[1] + dist_from_center * Math.sin(new_pos_angle);
         }
-
-        
 
         player.position = [x, y];
     }
@@ -300,14 +296,16 @@ const UpdateGameRoom = function(gameroom, io) {
 };
 
 const ResetPositions = function(gameroom) {
+    
     for(let flag of gameroom.state.flags) {
         flag.position = BaseCenterForTeam(flag.team);
         flag.carrier_id = null;
     }
-
+    
     for(let player of gameroom.state.players) {
         let base_center = BaseCenterForTeam(player.team);
-        let y_offset = player.team == 0 ? (BASE_RADIUS + player.radius) : -(BASE_RADIUS + player.radius);
+        let base_radius = gameroom.map.bases[player.team].radius;
+        let y_offset = player.team == 0 ? (base_radius + player.radius) : -(base_radius + player.radius);
         player.position = Vector2Addition(base_center, [0, y_offset]);
         player.prison = false;
         player.sprint = false;
@@ -317,10 +315,9 @@ const ResetPositions = function(gameroom) {
 }
 
 //#endregion
-
-const DispatchGameBegin = function(gameroom, io) {
+const DispatchStartGame = function(gameroom, io) {
     for (let player of gameroom.state.players) {
-        io.to(player.socket_id).emit("GAME_BEGIN");
+        io.to(player.socket_id).emit("GAME_INIT", gameroom.map);
     }
 };
 
@@ -366,7 +363,5 @@ const BaseCenterForTeam = function(team) {
 module.exports = {
     NewGameRoom,
     UpdateGameRoom,
-    DispatchStateForGameRoom,
-    JoinRoom,
-    DispatchGameBegin
+    DispatchStateForGameRoom    
 };

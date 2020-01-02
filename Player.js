@@ -14,7 +14,7 @@ const NewPlayer = function(user_id, client_socket){
         default_speed: 4,
         current_speed: 4, 
         radius: 20, //player radius
-        reach: 10, //action radius = size+reach
+        reach: 20, //action radius = size+reach
         action: false, //catch/take flag/pass flag
         sprint: false,
         team: 0,
