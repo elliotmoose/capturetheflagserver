@@ -4,7 +4,7 @@ const { NewFlag } = require('./Flag');
 const { NewBase } = require('./Base');
 
 // const ROOM_CAPACITY = 10;
-const ROOM_CAPACITY = 1; //TODO: only for testing purposes
+const ROOM_CAPACITY = 10; //TODO: only for testing purposes
 const CONTROLS_AGE_THRESHOLD = 700; //0.7s
 const MAP_WIDTH = 1500;
 const MAP_HEIGHT = 2500;
@@ -62,14 +62,13 @@ const OnUserJoinRoom = (client_socket, gameroom, io) => {
     gameroom.state.players.push(player);        
     
     //hooks up controls
-    client_socket.on("CONTROLS", controls =>
-        OnReceiveControls(controls, client_socket, gameroom)
-    );
+    client_socket.on("CONTROLS", controls => OnReceiveControls(controls, client_socket, gameroom));
+    client_socket.emit('MAP_DATA', gameroom.map);
 
     //initialize for client
-    if (gameroom.state.players.length == ROOM_CAPACITY) {
-        DispatchStartGame(gameroom, io);        
-    }
+    // if (gameroom.state.players.length == ROOM_CAPACITY) {
+    //     DispatchStartGame(gameroom, io);        
+    // }
 };
 
 /**
