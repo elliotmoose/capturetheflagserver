@@ -203,7 +203,7 @@ const UpdateFlagPositions = function(gameroom) {
 // TODO: Determine good number to divide delta_time by
 const UpdatePlayerSprint = (gameroom) => {
     let delta_time = gameroom.state.delta_time;
-    
+
     for (let player of gameroom.state.players) {
         if (player.sprint) {
             if (player.current_stamina > 0) {
@@ -272,6 +272,22 @@ const UpdateActions = function(gameroom) {
     }
 };
 
+const UpdateScoring = function(gameroom) {
+    for(let player of gameroom.state.players) {
+        let carried_flag = gameroom.state.flags.filter(f=>f.carrier_id == player.id);
+        
+        if(carried_flag.length == 0) {
+            continue;
+        }
+        else if(TeamTerrirtoryForPosition(player.position) == player.team) //carrying a flag and in my own territory
+        {
+            //score a point
+            ResetPositions(gameroom);
+            gameroom.state.score[player.team] += 1;
+        }
+    }
+}
+
 const UpdateGameRoom = function(gameroom, io) {
     UpdateDeltaTime(gameroom);    
     UpdateControlsAge(gameroom);
@@ -279,8 +295,26 @@ const UpdateGameRoom = function(gameroom, io) {
     UpdatePlayerSprint(gameroom);
     UpdatePlayerPositions(gameroom);
     UpdateActions(gameroom);
+    UpdateScoring(gameroom);
     DispatchStateForGameRoom(gameroom, io);
 };
+
+const ResetPositions = function(gameroom) {
+    for(let flag of gameroom.state.flags) {
+        flag.position = BaseCenterForTeam(flag.team);
+        flag.carrier_id = null;
+    }
+
+    for(let player of gameroom.state.players) {
+        let base_center = BaseCenterForTeam(player.team);
+        let y_offset = player.team == 0 ? (BASE_RADIUS + player.radius) : -(BASE_RADIUS + player.radius);
+        player.position = Vector2Addition(base_center, [0, y_offset]);
+        player.prison = false;
+        player.sprint = false;
+        player.current_stamina = player.max_stamina;
+        player.current_speed = player.default_speed;
+    }
+}
 
 //#endregion
 
@@ -315,10 +349,10 @@ const PlayersInRange = function(players, position, radius) {
  * @param {Array} position array of length 2
  */
 const TeamTerrirtoryForPosition = function(position) {
-    if (position[1] <= MAP_HEIGHT / 2) {
-        return 0; //team 0 is bottom half of map
+    if (position[1] >= MAP_HEIGHT / 2) {
+        return 0; //team 0 is top half of map
     } else {
-        return 1; //team 1 is top half of map
+        return 1; //team 1 is bottom half of map
     }
 };
 
