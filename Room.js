@@ -27,6 +27,7 @@ const NewGameRoom = function(io, id) {
                 NewFlag(1, BaseCenterForTeam(1))
             ],
             score: [0, 0],
+            delta_time: 0,
             timestamp: Date.now()
         },
         namespace
@@ -90,6 +91,11 @@ const JoinRoom = function(room, user_id, client_socket) {
 
 const StartGame = function(room) {};
 
+const UpdateDeltaTime = function(gameroom) {
+    gameroom.state.delta_time = Date.now() - gameroom.state.timestamp;
+    gameroom.state.timestamp = Date.now();
+}
+
 //#region Update
 /**
  * Checks if controls are too old
@@ -114,18 +120,19 @@ const UpdateControlsAge = function(gameroom) {
 /**
  * Updates player position
  * @param {*} gameroom
- * @param {number} deltaTime
  */
-// TODO: Determine good number to divide deltaTime by
-const UpdatePlayerPositions = function(gameroom, deltaTime) {
+// TODO: Determine good number to divide delta_time by
+const UpdatePlayerPositions = function(gameroom) {
+    let delta_time = gameroom.state.delta_time;
+
     for (let player of gameroom.state.players) {
 
         let x = player.position[0];
         let y = player.position[1];
 
         if(player.controls.angle) {
-            x = x + (player.current_speed * Math.cos(player.controls.angle) * deltaTime) / 10;
-            y = y + (player.current_speed * Math.sin(player.controls.angle) * deltaTime) / 10;
+            x = x + (player.current_speed * Math.cos(player.controls.angle) * delta_time) / 10;
+            y = y + (player.current_speed * Math.sin(player.controls.angle) * delta_time) / 10;
         }
 
         // Map boundaries
@@ -164,10 +171,11 @@ const UpdatePlayerPositions = function(gameroom, deltaTime) {
 /**
  * Update position for flag
  * Note: This must be run before passing of flags to ensure passing works as expected
- * @param {*} gameroom 
- * @param {*} deltaTime 
+ * @param {*} gameroom  
  */
-const UpdateFlagPositions = function(gameroom, deltaTime) {
+const UpdateFlagPositions = function(gameroom) {
+    let delta_time = gameroom.state.delta_time;
+
     let players = gameroom.state.players;
     for(let flag of gameroom.state.flags) {
         
@@ -190,16 +198,17 @@ const UpdateFlagPositions = function(gameroom, deltaTime) {
 
 /**
  * Updates the stamina of players
- * @param {*} gameroom
- * @param {number} deltaTime
+ * @param {*} gameroom 
  */
-// TODO: Determine good number to divide deltaTime by
-const UpdatePlayerSprint = (gameroom, deltaTime) => {
+// TODO: Determine good number to divide delta_time by
+const UpdatePlayerSprint = (gameroom) => {
+    let delta_time = gameroom.state.delta_time;
+    
     for (let player of gameroom.state.players) {
         if (player.sprint) {
             if (player.current_stamina > 0) {
                 player.current_speed = player.sprint_speed;
-                player.current_stamina = Math.max(player.current_stamina - deltaTime / 10, 0);
+                player.current_stamina = Math.max(player.current_stamina - delta_time / 10, 0);
             }
             else {
                 player.current_speed = player.default_speed;
@@ -207,7 +216,7 @@ const UpdatePlayerSprint = (gameroom, deltaTime) => {
         } 
         else {
             player.current_speed = player.default_speed;
-            player.current_stamina = Math.min(player.current_stamina + deltaTime / 10, player.max_stamina);            
+            player.current_stamina = Math.min(player.current_stamina + delta_time / 10, player.max_stamina);            
         }
     }
 };
@@ -264,12 +273,11 @@ const UpdateActions = function(gameroom) {
 };
 
 const UpdateGameRoom = function(gameroom, io) {
-    let deltaTime = Date.now() - gameroom.state.timestamp;
-    gameroom.state.timestamp = Date.now();
+    UpdateDeltaTime(gameroom);    
     UpdateControlsAge(gameroom);
-    UpdateFlagPositions(gameroom, deltaTime);
-    UpdatePlayerSprint(gameroom, deltaTime);
-    UpdatePlayerPositions(gameroom, deltaTime);
+    UpdateFlagPositions(gameroom);
+    UpdatePlayerSprint(gameroom);
+    UpdatePlayerPositions(gameroom);
     UpdateActions(gameroom);
     DispatchStateForGameRoom(gameroom, io);
 };

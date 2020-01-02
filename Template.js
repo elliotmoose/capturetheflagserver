@@ -19,6 +19,7 @@ let room = {
         players: [],
         score: [0, 0],
         flags: [],
+        delta_time: 0,
         timestamp: Date.now() // Timestamp to be updated whenever the room is updated. Used for deltaTime calculation
     }
 };
