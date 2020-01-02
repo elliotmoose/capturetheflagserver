@@ -225,32 +225,32 @@ const UpdateActions = function(gameroom) {
     let flags = gameroom.state.flags;
     let action_players = players.filter(p => p.action == true);    
 
-    for (let player_with_action of action_players) {        
-        let players_in_range = PlayersInRange(players, player_with_action.position, player_with_action.reach);
-
+    for (let player_with_action of action_players) {                
+        let players_in_range = PlayersInRange(players, player_with_action.position, player_with_action.reach + player_with_action.radius);                
         //1. Catching people
         //2. Freeing teammates
         //3. Capturing the flag
         //4. Passing flag
-
+        
         players_in_range.forEach(other_player => {
+            
             if(other_player == player_with_action) {return;} //cannot interact with self
+            
             //1. Catching people
-            if (player_with_action.team != other_player.team) {
+            if (player_with_action.team != other_player.team) {                
                 //check where point of contact is
                 let action_player_to_other_vector = Vector2Subtract(other_player.position, player_with_action.position); //this to other vector
                 let normalized_vector = Vector2Normalize(action_player_to_other_vector);
-                let point_of_contact = Vector2Addition(player_with_action, Vector2Multiply(normalized_vector, player_with_action.reach));
-                let team_territory = TeamTerrirtoryForPosition(point_of_contact);
-
-                //because we are enemies, somebody must be caught
-                if (player_with_action.team == team_territory) {
-                    //player who cast action is that catcher
-                    other_player.prison = true;
+                let point_of_contact = Vector2Addition(player_with_action.position, Vector2Multiply(normalized_vector, player_with_action.reach + player_with_action.radius));                
+                let team_territory = TeamTerrirtoryForPosition(point_of_contact);                
+                
+                //whoever is not in their territory in this interaction goes to jail
+                if (player_with_action.team != team_territory) {                    
+                    // player_with_action.prison = true;
                 } 
-                else {
-                    //player who cast action tried to catch someone in enemy zone
-                    player_with_action.prison = true;
+
+                if (other_player.team != team_territory) {                    
+                    // other_player.prison = true;
                 }
             } 
             else {
@@ -323,6 +323,7 @@ const DispatchStateForGameRoom = function(gameroom, io) {
 //#region helper functions
 /**
  * Finds a list of players in the radius from the position given
+ * in range meaning, edge of player
  * @param {*} players 
  * @param {*} position 
  * @param {*} radius 
@@ -331,8 +332,8 @@ const PlayersInRange = function(players, position, radius) {
     return players.filter(player => {
         let x_dist = player.position[0] - position[0];
         let y_dist = player.position[1] - position[1];
-        let dist = Math.sqrt(Math.pow(x_dist, 2) + Math.pow(y_dist, 2));
-        return dist <= radius;
+        let dist = Math.sqrt(Math.pow(x_dist, 2) + Math.pow(y_dist, 2));        
+        return dist <= radius + player.radius;
     });
 };
 

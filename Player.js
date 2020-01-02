@@ -10,9 +10,9 @@ const NewPlayer = function(user_id, client_socket, team){
         position: [0,0], //x, y        
         max_stamina: 100,
         current_stamina: 100,
-        sprint_speed: 10,
-        default_speed: 4,
-        current_speed: 4, 
+        sprint_speed: 6,
+        default_speed: 3,
+        current_speed: 3, 
         radius: 20, //player radius
         reach: 20, //action radius = size+reach
         action: false, //catch/take flag/pass flag
