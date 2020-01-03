@@ -9,6 +9,10 @@ const CONTROLS_AGE_THRESHOLD = 700; //0.7s
 const MAP_WIDTH = 1500;
 const MAP_HEIGHT = 2500;
 const BASE_MARGIN = 150;
+// TODO: determine good values for these
+const POS_FACTOR = 0.1;
+const STA_FACTOR_DEFAULT = 0.1;
+const STA_FACTOR_FAST = 0.2;
 
 /**
  * Creates a game room from an id. Each namespace corresponds to a game room
@@ -120,7 +124,6 @@ const UpdateControlsAge = function(gameroom) {
  * Updates player position
  * @param {*} gameroom
  */
-// TODO: Determine good number to divide delta_time by
 const UpdatePlayerPositions = function(gameroom) {
     let delta_time = gameroom.state.delta_time;
 
@@ -130,8 +133,8 @@ const UpdatePlayerPositions = function(gameroom) {
         let y = player.position[1];
 
         if(player.controls.angle) {
-            x = x + (player.current_speed * Math.cos(player.controls.angle) * delta_time) / 10;
-            y = y + (player.current_speed * Math.sin(player.controls.angle) * delta_time) / 10;
+            x = x + (player.current_speed * Math.cos(player.controls.angle) * delta_time) * POS_FACTOR;
+            y = y + (player.current_speed * Math.sin(player.controls.angle) * delta_time) * POS_FACTOR;
         }
 
         // Map boundaries
@@ -199,7 +202,6 @@ const UpdateFlagPositions = function(gameroom) {
  * Updates the stamina of players
  * @param {*} gameroom 
  */
-// TODO: Determine good number to divide delta_time by
 const UpdatePlayerSprint = (gameroom) => {
     let delta_time = gameroom.state.delta_time;
 
@@ -207,7 +209,7 @@ const UpdatePlayerSprint = (gameroom) => {
         if (player.sprint) {
             if (player.current_stamina > 0) {
                 player.current_speed = player.sprint_speed;
-                player.current_stamina = Math.max(player.current_stamina - delta_time / 10, 0);
+                player.current_stamina = Math.max(player.current_stamina - delta_time * STA_FACTOR_DEFAULT, 0);
             }
             else {
                 player.current_speed = player.default_speed;
@@ -215,7 +217,8 @@ const UpdatePlayerSprint = (gameroom) => {
         } 
         else {
             player.current_speed = player.default_speed;
-            player.current_stamina = Math.min(player.current_stamina + delta_time / 10, player.max_stamina);            
+            let factor = player.controls.angle ? STA_FACTOR_DEFAULT : STA_FACTOR_FAST;
+            player.current_stamina = Math.min(player.current_stamina + delta_time * factor, player.max_stamina);
         }
     }
 };
