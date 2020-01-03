@@ -1,6 +1,6 @@
 const Room = require("./Room");
 const uuid = require("uuid");
-
+const Config = require("./Config");
 /**
  * Every game room is one instance of the game
  */
@@ -83,7 +83,7 @@ var RequestFindMatch = function(client_socket) {
 
     //TODO: clients are added in and immediately told that a match is found (TESTING)
     lobby_socket_ids.push(client_socket.id);
-    if(lobby_socket_ids.length == 2) {
+    if(lobby_socket_ids.length == Config.ROOM_SIZE) {
         let new_room_id = PushLobbyToGameRoom();    
         console.log('Lobby pushed to game room');
     }

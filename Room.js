@@ -4,7 +4,6 @@ const { NewFlag } = require('./Flag');
 const { NewBase } = require('./Base');
 
 // const ROOM_CAPACITY = 10;
-const ROOM_CAPACITY = 10; //TODO: only for testing purposes
 const CONTROLS_AGE_THRESHOLD = 700; //0.7s
 const MAP_WIDTH = 1500;
 const MAP_HEIGHT = 2500;
@@ -111,6 +110,7 @@ const UpdateControlsAge = function(gameroom) {
             player.controls.sprint = false;
         }
         
+        player.angle = player.controls.angle;
         player.action = player.controls.action;
         player.sprint = player.controls.sprint;
     }
@@ -129,9 +129,9 @@ const UpdatePlayerPositions = function(gameroom) {
         let x = player.position[0];
         let y = player.position[1];
 
-        if(player.controls.angle) {
-            x = x + (player.current_speed * Math.cos(player.controls.angle) * delta_time) / 10;
-            y = y + (player.current_speed * Math.sin(player.controls.angle) * delta_time) / 10;
+        if(player.angle) {
+            x = x + (player.current_speed * Math.cos(player.angle) * delta_time) / 10;
+            y = y + (player.current_speed * Math.sin(player.angle) * delta_time) / 10;
         }
 
         // Map boundaries
