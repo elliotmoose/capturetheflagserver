@@ -132,9 +132,9 @@ const UpdatePlayerPositions = function(gameroom) {
         let x = player.position[0];
         let y = player.position[1];
 
+        if(player.angle) {
             x = x + (player.current_speed * Math.cos(player.controls.angle) * delta_time) * POS_FACTOR;
             y = y + (player.current_speed * Math.sin(player.controls.angle) * delta_time) * POS_FACTOR;
-        if(player.angle) {
         }
 
         // Map boundaries
