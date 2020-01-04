@@ -69,6 +69,7 @@ const OnUserJoinRoom = (client_socket, gameroom, io) => {
         
     //hooks up controls
     client_socket.on("CONTROLS", controls => OnReceiveControls(controls, client_socket, gameroom));
+    client_socket.on('PING', ()=>client_socket.emit('PING'));
     client_socket.emit('BIND_PLAYER', client_socket.id);
     client_socket.emit('INIT_MAP', gameroom.map);
 
