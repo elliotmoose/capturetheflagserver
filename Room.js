@@ -208,19 +208,21 @@ const UpdatePlayerSprint = (gameroom) => {
     let delta_time = gameroom.delta_time;
 
     for (let player of gameroom.state.players) {
-        if (player.sprint) {
-            if (player.current_stamina > 0) {
-                player.current_speed = player.sprint_speed;
-                player.current_stamina = Math.max(player.current_stamina - delta_time * STA_FACTOR_DEFAULT, 0);
-            }
-            else {
+        if (player.angle) {
+            if (player.sprint) {
+                if (player.current_stamina > 0) {
+                    player.current_speed = player.sprint_speed;
+                    player.current_stamina = Math.max(player.current_stamina - delta_time * STA_FACTOR_DEFAULT, 0);
+                }
+                else {
+                    player.current_speed = player.default_speed;
+                }
+            } else {
                 player.current_speed = player.default_speed;
+                player.current_stamina = Math.min(player.current_stamina + delta_time * STA_FACTOR_DEFAULT, player.max_stamina);
             }
-        } 
-        else {
-            player.current_speed = player.default_speed;
-            let factor = player.controls.angle ? STA_FACTOR_DEFAULT : STA_FACTOR_FAST;
-            player.current_stamina = Math.min(player.current_stamina + delta_time * factor, player.max_stamina);
+        } else {
+            player.current_stamina = Math.min(player.current_stamina + delta_time * STA_FACTOR_FAST, player.max_stamina);
         }
     }
 };
