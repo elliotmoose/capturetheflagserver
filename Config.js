@@ -1,3 +1,3 @@
 module.exports = {
-    ROOM_SIZE: 2
+    ROOM_SIZE: 3
 }
