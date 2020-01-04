@@ -14,6 +14,7 @@
  */
 let room = {
     id: "room_generated_uuid", //also the namespace id
+    start_time: null,
     state: {
         in_progress: false,
         players: [],

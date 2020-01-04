@@ -1,4 +1,5 @@
 const { NewPlayer } = require("./Player");
+const Config = require("./Config");
 const { Vector2Subtract, Vector2Addition, Vector2Multiply, Vector2Magnitude, Vector2Normalize } = require('./helpers/Vectors');
 const { NewFlag } = require('./Flag');
 const { NewBase } = require('./Base');
@@ -23,16 +24,16 @@ const NewGameRoom = function(io, id) {
     //creates the room
     let gameroom = {
         id,
-        in_progress: false,
+        start_time: null,
+        delta_time: 0,
+        timestamp: Date.now(),
         state: {
             players: [],
             flags: [
                 NewFlag(0, BasePositionForTeam(0)),
                 NewFlag(1, BasePositionForTeam(1))
             ],
-            score: [0, 0],
-            delta_time: 0,
-            timestamp: Date.now()
+            score: [0, 0],            
         },
         map: {
             bases: [
@@ -54,7 +55,7 @@ const NewGameRoom = function(io, id) {
     return gameroom;
 };
 
-const OnUserJoinRoom = (client_socket, gameroom, io) => {
+const OnUserJoinRoom = (client_socket, gameroom, namespace) => {
     console.log(`${client_socket.id} joined room ${gameroom.id}`);
 
     //creates the respective player
@@ -73,10 +74,10 @@ const OnUserJoinRoom = (client_socket, gameroom, io) => {
     client_socket.emit('BIND_PLAYER', client_socket.id);
     client_socket.emit('INIT_MAP', gameroom.map);
 
-    //initialize for client
-    // if (gameroom.state.players.length == ROOM_CAPACITY) {
-    //     DispatchStartGame(gameroom, io);        
-    // }
+    // initialize for client
+    if (gameroom.state.players.length == Config.ROOM_SIZE) {
+        DispatchStartGame(gameroom, namespace);        
+    }
 };
 
 /**
@@ -95,8 +96,8 @@ const OnReceiveControls = (controls, client_socket, gameroom) => {
 };
 
 const UpdateDeltaTime = function(gameroom) {
-    gameroom.state.delta_time = Date.now() - gameroom.state.timestamp;
-    gameroom.state.timestamp = Date.now();
+    gameroom.delta_time = Date.now() - gameroom.timestamp;
+    gameroom.timestamp = Date.now();
 }
 
 //#region Update
@@ -126,7 +127,7 @@ const UpdateControlsAge = function(gameroom) {
  * @param {*} gameroom
  */
 const UpdatePlayerPositions = function(gameroom) {
-    let delta_time = gameroom.state.delta_time;
+    let delta_time = gameroom.delta_time;
 
     for (let player of gameroom.state.players) {
 
@@ -177,7 +178,7 @@ const UpdatePlayerPositions = function(gameroom) {
  * @param {*} gameroom  
  */
 const UpdateFlagPositions = function(gameroom) {
-    let delta_time = gameroom.state.delta_time;
+    let delta_time = gameroom.delta_time;
 
     let players = gameroom.state.players;
     for(let flag of gameroom.state.flags) {
@@ -204,7 +205,7 @@ const UpdateFlagPositions = function(gameroom) {
  * @param {*} gameroom 
  */
 const UpdatePlayerSprint = (gameroom) => {
-    let delta_time = gameroom.state.delta_time;
+    let delta_time = gameroom.delta_time;
 
     for (let player of gameroom.state.players) {
         if (player.sprint) {
@@ -323,6 +324,11 @@ const ResetPositions = function(gameroom) {
 const DispatchStateForGameRoom = function(gameroom, io) {        
     io.of(gameroom.id).emit("GAME_STATE", gameroom.state);
 };
+
+const DispatchStartGame = (gameroom, namespace) => {
+    gameroom.start_time = Date.now();
+    namespace.emit("GAME_START", gameroom.start_time);
+}
 
 //#region helper functions
 /**
