@@ -1,16 +1,13 @@
 const Room = require("./Room");
+const CustomRoom = require("./CustomRoom");
 const uuid = require("uuid");
 const Config = require("./Config");
 /**
  * Every game room is one instance of the game
  */
-var custom_game_rooms = {};
-
-var lobby_rooms = {};
-
-var active_game_rooms = {};
-
-var open_room_id = null;
+let custom_game_rooms = {};
+let normal_matchmaking_queue = []; 
+let active_game_rooms = {};
 
 var io;
 
@@ -35,20 +32,35 @@ let lobby_socket_ids = [];
  * @param {SocketIO.Socket} client_socket
  */
 var OnUserJoinLobby = function(client_socket) {
-    client_socket.on("REQUEST_JOIN_ROOM", room_id =>
-        RequestJoinRoom(room_id, client_socket)
-    );
-    client_socket.on("REQUEST_FIND_MATCH", () =>
-        RequestFindMatch(client_socket)
-    );
+    client_socket.on("REQUEST_LOAD_LOBBY_ROOMS", ()=>RequestLoadLobbyRooms(client_socket));
+    client_socket.on("REQUEST_CREATE_CUSTOM_ROOM", (user_id, room_name)=>RequestCreateCustomRoom(user_id, room_name, client_socket));
+    client_socket.on("REQUEST_JOIN_CUSTOM_ROOM", room_id => RequestJoinCustomRoom(room_id, client_socket));
+    client_socket.on("REQUEST_FIND_NORMAL_MATCH", () => RequestFindNormalMatch(client_socket));
 };
 
+var RequestLoadLobbyRooms = function(client_socket) {        
+    let rooms = Object.values(custom_game_rooms).map(room => {
+        return {
+            id: room.id,
+            name: room.name,
+            player_count: room.team_0.length + room.team_1.length,
+            config: room.config,   
+        }
+    });
+
+    client_socket.emit("LOBBY_ROOMS_UPDATE", rooms);
+}
+
+var RequestCreateCustomRoom = function(user_id, room_name, client_socket) {
+    let new_room = CustomRoom.NewCustomRoom(user_id, room_name, io);
+    custom_game_rooms[new_room.id] = new_room;
+}
 /**
  * Handles client requests to joins a room
  * @param {string} room_id
  * @param {SocketIO.Socket} client_socket
  */
-var RequestJoinRoom = function(room_id, client_socket) {
+var RequestJoinCustomRoom = function(room_id, client_socket) {
     console.log(`user requesting to join room: ${room_id}`);
 
     //if the room doesnt exist
@@ -71,7 +83,7 @@ var RequestJoinRoom = function(room_id, client_socket) {
  * The client requests to find a match. When the room is full, the client is notified to join the namespace.
  * @param {*} client_socket
  */
-var RequestFindMatch = function(client_socket) {
+var RequestFindNormalMatch = function(client_socket) {
     console.log("user is request match: " + client_socket.id);
     //TODO: receive actual user id
     let user_id = "temp_id";
