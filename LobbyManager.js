@@ -139,7 +139,7 @@ var CreateRoomInLobby = function() {
 
 var UpdateGameRooms = function() {
     for (let room of Object.values(active_game_rooms)) {
-        Room.UpdateGameRoom(room, io);
+        Room.UpdateGameRoom(room);
     }
 };
 

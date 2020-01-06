@@ -1,5 +1,4 @@
 const { NewPlayer } = require("./Player");
-const Config = require("./Config");
 const { Vector2Subtract, Vector2Addition, Vector2Multiply, Vector2Magnitude, Vector2Normalize } = require('./helpers/Vectors');
 const { NewFlag } = require('./Flag');
 const { NewBase } = require('./Base');
@@ -34,6 +33,7 @@ const NewGameRoom = function(io, id) {
                 NewFlag(1, BasePositionForTeam(1))
             ],
             score: [0, 0],            
+            sudden_death: false
         },
         map: {
             bases: [
@@ -45,17 +45,22 @@ const NewGameRoom = function(io, id) {
                 height: MAP_HEIGHT
             }
         },
+        config : {
+            max_score: 5,
+            max_players: 10,
+            game_length: 10
+        },
         namespace
     };
 
     namespace.on("connection", client_socket =>
-        OnUserJoinRoom(client_socket, gameroom, namespace)
+        OnUserJoinRoom(client_socket, gameroom)
     );
 
     return gameroom;
 };
 
-const OnUserJoinRoom = (client_socket, gameroom, namespace) => {
+const OnUserJoinRoom = (client_socket, gameroom) => {
     console.log(`${client_socket.id} joined room ${gameroom.id}`);
 
     //creates the respective player
@@ -74,9 +79,9 @@ const OnUserJoinRoom = (client_socket, gameroom, namespace) => {
     client_socket.emit('BIND_PLAYER', client_socket.id);
     client_socket.emit('INIT_MAP', gameroom.map);
 
-    // initialize for client
-    if (gameroom.state.players.length == Config.ROOM_SIZE) {
-        DispatchStartGame(gameroom, namespace);        
+    //check to start game
+    if (gameroom.state.players.length == gameroom.config.max_players) {
+        DispatchStartGame(gameroom);        
     }
 };
 
@@ -98,9 +103,20 @@ const OnReceiveControls = (controls, client_socket, gameroom) => {
 const UpdateDeltaTime = function(gameroom) {
     gameroom.delta_time = Date.now() - gameroom.timestamp;
     gameroom.timestamp = Date.now();
+
+    if(Date.now() - gameroom.start_time >= gameroom.config.game_length && gameroom.state.sudden_death != true) {
+        if(gameroom.state.score[0] == gameroom.state.score[1]) {
+            gameroom.state.sudden_death = true;
+            OnBeginSuddenDeath(gameroom);
+        }
+        else {
+            let win_team = gameroom.state.score[0] > gameroom.state.score[1] ? 0 : 1;
+            OnTeamWin(win_team, gameroom);
+        }
+    }
 }
 
-//#region Update
+//#region ================================================= UPDATE =================================================
 /**
  * Checks if controls are too old
  */
@@ -287,14 +303,12 @@ const UpdateScoring = function(gameroom) {
         }
         else if(TeamTerrirtoryForPosition(player.position) == player.team) //carrying a flag and in my own territory
         {
-            //score a point
-            ResetPositions(gameroom);
-            gameroom.state.score[player.team] += 1;
+            OnPlayerScore(player, gameroom)
         }
     }
 }
 
-const UpdateGameRoom = function(gameroom, io) {
+const UpdateGameRoom = function(gameroom) {
     UpdateDeltaTime(gameroom);    
     UpdateControlsAge(gameroom);
     UpdateFlagPositions(gameroom);
@@ -302,7 +316,7 @@ const UpdateGameRoom = function(gameroom, io) {
     UpdatePlayerPositions(gameroom);
     UpdateActions(gameroom);
     UpdateScoring(gameroom);
-    DispatchStateForGameRoom(gameroom, io);
+    DispatchStateForGameRoom(gameroom);
 };
 
 const ResetPositions = function(gameroom) {
@@ -323,13 +337,42 @@ const ResetPositions = function(gameroom) {
 
 //#endregion
 
-const DispatchStateForGameRoom = function(gameroom, io) {        
-    io.of(gameroom.id).emit("GAME_STATE", gameroom.state);
+//#region ================================================= GAME EVENTS =================================================
+/**
+ * When a player scores a point
+ * @param {*} player 
+ * @param {*} gameroom 
+ */
+const OnPlayerScore = function(player, gameroom) {    
+    ResetPositions(gameroom);
+    gameroom.state.score[player.team] += 1;    
+
+    //check win
+    if(gameroom.state.score[player.team] == gameroom.config.max_score) {
+        OnTeamWin(player.team, gameroom);
+    }
+}
+
+const OnTeamWin = function(team, gameroom) {
+    DispatchEndGame(team, gameroom) //kick players to lobby
+}
+
+const OnBeginSuddenDeath = function(gameroom) {
+    OnBeginSuddenDeath(gameroom);
+}
+//#endregion
+
+const DispatchStateForGameRoom = function(gameroom) {        
+    gameroom.namespace.emit("GAME_STATE", gameroom.state);
 };
 
-const DispatchStartGame = (gameroom, namespace) => {
+const DispatchStartGame = (gameroom) => {
     gameroom.start_time = Date.now();
-    namespace.emit("GAME_START", gameroom.start_time);
+    gameroom.namespace.emit("GAME_START", gameroom.start_time);
+}
+
+const DispatchEndGame = (team, gameroom) => {
+    gameroom.namespace.emit("GAME_END", team);
 }
 
 //#region helper functions
@@ -376,6 +419,5 @@ const SpawnPositionForTeam = function(team, player_radius, base_radius) {
 
 module.exports = {
     NewGameRoom,
-    UpdateGameRoom,
-    DispatchStateForGameRoom    
+    UpdateGameRoom    
 };
