@@ -32,12 +32,16 @@ let lobby_socket_ids = [];
  * @param {SocketIO.Socket} client_socket
  */
 var OnUserJoinLobby = function(client_socket) {
+    //CUSTOM
     client_socket.on("REQUEST_LOAD_LOBBY_ROOMS", ()=>RequestLoadLobbyRooms(client_socket));
-    client_socket.on("REQUEST_CREATE_CUSTOM_ROOM", (user_id, room_name)=>RequestCreateCustomRoom(user_id, room_name, client_socket));
+    client_socket.on("REQUEST_CREATE_CUSTOM_ROOM", ({user_id, room_name})=>RequestCreateCustomRoom(user_id, room_name, client_socket));
     client_socket.on("REQUEST_JOIN_CUSTOM_ROOM", room_id => RequestJoinCustomRoom(room_id, client_socket));
+
+    //NORMAL
     client_socket.on("REQUEST_FIND_NORMAL_MATCH", () => RequestFindNormalMatch(client_socket));
 };
 
+//#region CUSTOM
 var RequestLoadLobbyRooms = function(client_socket) {        
     let rooms = Object.values(custom_game_rooms).map(room => {
         return {
@@ -52,6 +56,7 @@ var RequestLoadLobbyRooms = function(client_socket) {
 }
 
 var RequestCreateCustomRoom = function(user_id, room_name, client_socket) {
+    console.log(`custom room "${room_name}" created for user: ${user_id}`);
     let new_room = CustomRoom.NewCustomRoom(user_id, room_name, io);
     custom_game_rooms[new_room.id] = new_room;
 }
@@ -67,7 +72,7 @@ var RequestJoinCustomRoom = function(room_id, client_socket) {
     if (custom_game_rooms[room_id]) {
         //finds the room
         let gameroom = custom_game_rooms[room_id];
-        client_socket.emit("JOIN_ROOM_CONFIRMED", gameroom.id);
+        client_socket.emit("JOIN_CUSTOM_ROOM_CONFIRMED", gameroom.id);
     } else {
         let error = {
             status: "ERROR",
@@ -78,6 +83,8 @@ var RequestJoinCustomRoom = function(room_id, client_socket) {
         client_socket.emit("JOIN_ROOM_FAILED", error);
     }
 };
+
+//#endregion
 
 /**
  * The client requests to find a match. When the room is full, the client is notified to join the namespace.

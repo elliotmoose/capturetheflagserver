@@ -367,7 +367,7 @@ const OnBeginSuddenDeath = function(gameroom) {
 //#endregion
 
 const DispatchStateForGameRoom = function(gameroom) {        
-    gameroom.namespace.emit("GAME_STATE", gameroom.state);
+    gameroom.namespace.volatile.emit("GAME_STATE", gameroom.state);
 };
 
 const DispatchStartGame = (gameroom) => {

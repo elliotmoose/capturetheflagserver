@@ -13,6 +13,8 @@ const NewCustomRoom = function(owner_id, room_name, io ) {
         id,        
         name: room_name,
         owner_id: owner_id,
+        team_0: [],
+        team_1: [],
         map: {            
             bounds : {
                 width: MAP_WIDTH,
@@ -27,7 +29,26 @@ const NewCustomRoom = function(owner_id, room_name, io ) {
         namespace    
     }
 
+    namespace.on("connection", client_socket => OnUserJoinCustomRoom(client_socket, custom_room));
+
     return custom_room;
+}
+
+const OnUserJoinCustomRoom = (client_socket, custom_room) => {
+    DispatchRoomStateUpdate(custom_room);    
+}
+
+const DispatchRoomStateUpdate = (custom_room) => {
+    // console.log(custom_room.namespace);
+    custom_room.namespace.emit('CUSTOM_ROOM_UPDATE', {
+        id: custom_room.id,
+        name: custom_room.name,
+        owner_id: custom_room.owner_id,
+        team_0: custom_room.team_0,
+        team_1: custom_room.team_1,
+        map: custom_room.map,
+        config: custom_room.config,
+    });
 }
 
 module.exports = { NewCustomRoom };
