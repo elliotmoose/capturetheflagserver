@@ -32,8 +32,9 @@ const NewGameRoom = function(io, id) {
                 NewFlag(0, BasePositionForTeam(0)),
                 NewFlag(1, BasePositionForTeam(1))
             ],
-            score: [0, 0],            
-            sudden_death: false
+            score: [0, 0],      
+            in_progress: false,      
+            sudden_death: false,
         },
         map: {
             bases: [
@@ -53,9 +54,7 @@ const NewGameRoom = function(io, id) {
         namespace
     };
 
-    namespace.on("connection", client_socket =>
-        OnUserJoinRoom(client_socket, gameroom)
-    );
+    namespace.on("connection", client_socket => OnUserJoinRoom(client_socket, gameroom));
 
     return gameroom;
 };
@@ -104,8 +103,12 @@ const UpdateDeltaTime = function(gameroom) {
     gameroom.delta_time = Date.now() - gameroom.timestamp;
     gameroom.timestamp = Date.now();
 
-    if(Date.now() - gameroom.start_time >= gameroom.config.game_length && gameroom.state.sudden_death != true) {
-        if(gameroom.state.score[0] == gameroom.state.score[1]) {
+    let game_time_millis = Date.now() - gameroom.start_time;
+    let game_time_minutes = (game_time_millis/1000)/60;
+    //if game has exceed stipulated length
+    if(game_time_minutes >= gameroom.config.game_length) {
+        //if not sudden death and should
+        if(gameroom.state.sudden_death != true && gameroom.state.score[0] == gameroom.state.score[1]) {
             gameroom.state.sudden_death = true;
             OnBeginSuddenDeath(gameroom);
         }
@@ -354,6 +357,7 @@ const OnPlayerScore = function(player, gameroom) {
 }
 
 const OnTeamWin = function(team, gameroom) {
+    gameroom.state.in_progress = false;
     DispatchEndGame(team, gameroom) //kick players to lobby
 }
 

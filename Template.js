@@ -15,13 +15,14 @@
 let room = {
     id: "room_generated_uuid", //also the namespace id
     start_time: null,
+    delta_time: 0,      
+    timestamp: Date.now(), // Timestamp to be updated whenever the room is updated. Used for deltaTime calculation
     state: {
-        in_progress: false,
         players: [],
         score: [0, 0],
         flags: [],
-        delta_time: 0,
-        timestamp: Date.now() // Timestamp to be updated whenever the room is updated. Used for deltaTime calculation
+        in_progress: false,
+        sudden_death: false,
     },
     map: {
         bases: [],
@@ -30,6 +31,12 @@ let room = {
             height: 0
         }
     },
+    config : {
+        max_score: 5,
+        max_players: 10,
+        game_length: 10
+    },
+    namespace: null //should be the io namespace
 };
 
 let player = {
