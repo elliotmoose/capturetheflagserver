@@ -92,6 +92,7 @@ let normal_matchmaking_queue = [
 let custom_room_lobby = {
     id: 'namespace_id',
     name: 'room_name',
+    owner_id: 'elliotmoose',
     team_0: [user, user],
     team_1: [user, user],
     map: {

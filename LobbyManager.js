@@ -47,7 +47,7 @@ var RequestLoadLobbyRooms = function(client_socket) {
         return {
             id: room.id,
             name: room.name,
-            player_count: room.team_0.length + room.team_1.length,
+            player_count: room.teams[0].length + room.teams[1].length,
             config: room.config,   
         }
     });
