@@ -5,7 +5,7 @@ const MAP_WIDTH = 1500;
 const MAP_HEIGHT = 2500;
 const BASE_MARGIN = 150;
 
-const NewCustomRoom = function(owner_id, room_name, io ) {
+const NewCustomRoom = function(owner_id, room_name, io, delete_callback ) {
     let id = uuid.v1();
     let namespace = io.of(id);
     //creates the room
@@ -25,29 +25,52 @@ const NewCustomRoom = function(owner_id, room_name, io ) {
             max_players: 10,
             game_length: 10
         },
-        namespace    
+        namespace,
+        delete: ()=>{delete_callback(id)}    
     }
 
-    namespace.on("connection", client_socket => OnUserJoinCustomRoom(client_socket, custom_room));
+    namespace.on("connection", client_socket => OnUserJoinCustomRoom(client_socket, custom_room));    
 
     return custom_room;
 }
 
 const OnUserJoinCustomRoom = (client_socket, custom_room) => {
+    
+    
     let player = {
         id: 'asd',
         username: 'asd', 
         socket: client_socket
     }
-    if(custom_room.teams[0].length <= custom_room.teams[1].length) {
-        custom_room.teams[0].push(player);
+    
+    let team = 0;
+    if(custom_room.teams[0].length > custom_room.teams[1].length) {
+        team = 1;
     }
-    else {
-        custom_room.teams[1].push(player);
-    }
+    
+    custom_room.teams[0].push(player);
+    
+    //hook up on disconnect
+    client_socket.on('disconnect', ()=>OnUserLeaveCustomRoom(client_socket, custom_room));
+
     DispatchRoomStateUpdate(custom_room);    
 }
 
+const OnUserLeaveCustomRoom = (client_socket,custom_room) => {
+    console.log(`user ${client_socket.id} has left`);
+    
+    for(let team of custom_room.teams) {        
+        let index = team.findIndex((player)=>player.socket.id == client_socket.id);
+        if(index != -1) {
+            team.splice(index, 1);        
+        }        
+    }
+
+    if(custom_room.teams[0].length == 0 && custom_room.teams[1].length == 0) {
+        //clean up room
+        custom_room.delete();
+    }
+}
 const DispatchRoomStateUpdate = (custom_room) => {
     // console.log(custom_room.namespace);
     let final_teams = [[],[]];

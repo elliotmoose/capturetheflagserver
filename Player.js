@@ -1,12 +1,11 @@
 /**
- * Creates a template player
- * @param {*} client_socket 
+ * Creates a template player 
  */
-const NewPlayer = function(user_id, client_socket, team){
+const NewPlayer = function(user_id, username, team){
     return {
-        username : 'john_doe',
+        username : username,
         id: user_id,
-        socket_id: client_socket.id,
+        socket_id: null, //***** =============================== has to be bound later
         position: [0,0], //x, y        
         max_stamina: 100,
         current_stamina: 100,
