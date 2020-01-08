@@ -18,15 +18,18 @@ const STA_FACTOR_FAST = 0.2;
  * Creates a game room from an id. Each namespace corresponds to a game room
  * @param {*} io
  */
-const NewGameRoom = function(io, players, config) {
-    
-    let id = uuid.v1();
+const NewGameRoom = function(io, user_packages, config, id=uuid.v1()) {
     let namespace = io.of(id);
     
     let game_players = []
-    for(let user_packages of players) {
-        let team = game_players.filter(p=>p.team == 0).length <= game_players.filter(p=>p.team == 1).length ? 0 : 1;
-        let player = NewPlayer(user_packages.id, user_packages.username, team);        
+    for(let user_package of user_packages) {
+        let team = user_package.team;
+
+        //if no team has been set (i.e. matchmaking games, cuz custom games preset teams)
+        if(!team) {
+            team = game_players.filter(p=>p.team == 0).length <= game_players.filter(p=>p.team == 1).length ? 0 : 1;
+        }
+        let player = NewPlayer(user_package.id, user_package.username, team);        
         game_players.push(player);
     }    
 

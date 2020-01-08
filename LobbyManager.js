@@ -1,8 +1,8 @@
-const Room = require("./Room");
+const GameRoom = require("./GameRoom");
 const CustomRoom = require("./CustomRoom");
-const uuid = require("uuid");
 const Config = require("./Config");
 const UserManager = require("./UserManager");
+
 /**
  * Every game room is one instance of the game
  */
@@ -49,7 +49,7 @@ var RequestLoadLobbyRooms = function(client_socket) {
         return {
             id: room.id,
             name: room.name,
-            player_count: room.teams[0].length + room.teams[1].length,
+            player_count: room.users.length,
             config: room.config,   
         }
     });
@@ -59,11 +59,23 @@ var RequestLoadLobbyRooms = function(client_socket) {
 
 var RequestCreateCustomRoom = function(user_id, room_name, client_socket) {
     console.log(`custom room "${room_name}" created for user: ${user_id}`);
-    let delete_room = (room_id)=> {
+        
+    //convert room from custom_game to active game
+    let begin_room = (room_id) => {
+        let room = custom_game_rooms[room_id];
+        let players = room.users;
+        let gameroom = GameRoom.NewGameRoom(io, players, room.config);        
+        BeginGameForPlayersAndGameRoom(players, gameroom, io.of(room.id));
+        delete custom_game_rooms[room_id];        
+    }
+    
+    let delete_room = (room_id) => {
         console.log(`deleting room with id: ${room_id}`);
         delete custom_game_rooms[room_id];
     }
-    let new_room = CustomRoom.NewCustomRoom(user_id, room_name, io, delete_room);
+
+    
+    let new_room = CustomRoom.NewCustomRoom(user_id, room_name, io, begin_room, delete_room);
     custom_game_rooms[new_room.id] = new_room;
 }
 /**
@@ -150,14 +162,8 @@ var UpdateNormalMatchmakingQueue = () => {
 
         //create game room
         let players = normal_matchmaking_queue;
-        let gameroom = Room.NewGameRoom(io, players, Config.normal);
-
-        active_game_rooms[gameroom.id] = gameroom;
-        
-        //signal users to join room
-        for(let user_package of normal_matchmaking_queue) {
-            io.to(user_package.socket_id).emit('COMMAND_JOIN_GAME_ROOM', gameroom.id);
-        };
+        let gameroom = GameRoom.NewGameRoom(io, players, Config.normal);
+        BeginGameForPlayersAndGameRoom(players, gameroom, io);
 
         //reset queue
         normal_matchmaking_queue = [];
@@ -165,10 +171,28 @@ var UpdateNormalMatchmakingQueue = () => {
         
 }
 
+/**
+ * Tells players to join the game room and kicks start the game
+ * @param {*} players 
+ * @param {*} gameroom 
+ * @param {*} socket_io could be the io, or could be a namespace (custom rooms). both ways we want to tell specific users to join the new game room
+ */
+var BeginGameForPlayersAndGameRoom = (players, gameroom, socket_io) => {    
+    active_game_rooms[gameroom.id] = gameroom;
+    DispatchJoinGameRoom(players, gameroom, socket_io);
+}
+
 var UpdateGameRooms = function() {
     for (let room of Object.values(active_game_rooms)) {
-        Room.UpdateGameRoom(room);
+        GameRoom.UpdateGameRoom(room);
     }
 };
+
+var DispatchJoinGameRoom = (players, gameroom, socket_io) => {
+    //signal users to join room
+    for(let user_package of players) {        
+        socket_io.to(user_package.socket_id).emit('COMMAND_JOIN_GAME_ROOM', gameroom.id);
+    };
+}
 
 module.exports = { InitializeLobbyManager, OnUserJoinLobby, UpdateGameRooms };

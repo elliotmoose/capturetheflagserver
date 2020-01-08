@@ -1,6 +1,6 @@
 module.exports = {
     normal : {
-        max_players: 2,
+        max_players: 1,
         game_length: 10
     }
 }

@@ -1,11 +1,12 @@
 const uuid = require("uuid");
+const UserManager = require("./UserManager");
 
 const CONTROLS_AGE_THRESHOLD = 700; //0.7s
 const MAP_WIDTH = 1500;
 const MAP_HEIGHT = 2500;
 const BASE_MARGIN = 150;
 
-const NewCustomRoom = function(owner_id, room_name, io, delete_callback ) {
+const NewCustomRoom = function(owner_id, room_name, io, begin_callback, delete_callback ) {
     let id = uuid.v1();
     let namespace = io.of(id);
     //creates the room
@@ -13,7 +14,7 @@ const NewCustomRoom = function(owner_id, room_name, io, delete_callback ) {
         id,        
         name: room_name,
         owner_id: owner_id,
-        teams: [[],[]],        
+        users: [],        
         map: {            
             bounds : {
                 width: MAP_WIDTH,
@@ -26,6 +27,7 @@ const NewCustomRoom = function(owner_id, room_name, io, delete_callback ) {
             game_length: 10
         },
         namespace,
+        begin: ()=>{begin_callback(id)},    
         delete: ()=>{delete_callback(id)}    
     }
 
@@ -35,20 +37,43 @@ const NewCustomRoom = function(owner_id, room_name, io, delete_callback ) {
 }
 
 const OnUserJoinCustomRoom = (client_socket, custom_room) => {
-    
-    
-    let player = {
-        id: 'asd',
-        username: 'asd', 
-        socket: client_socket
+    if(custom_room.users.length == custom_room.config.max_players) {
+        client_socket.emit('JOIN_ROOM_FAILED', {
+            status: 'ROOM_FULL',
+            statusText: 'Room Full',
+            message: 'The requested room is full.'
+        })
+        return;
     }
+    client_socket.on('REQUEST_START_CUSTOM_GAME', ({user_id})=> OnRequestStartGame(user_id, client_socket, custom_room));
+    client_socket.emit('COMMAND_GET_USER_ID');
+    client_socket.on('REQUEST_SET_USER_ID', ({user_id}) => OnUserSetUserId(user_id, client_socket, custom_room));    
+}
+
+const OnUserSetUserId = async (user_id, client_socket, custom_room) => {
+    //retrieve username etc
+    let user = await UserManager.GetUserFromId(user_id);
+
+    if(!user) {
+        return;
+    }
+
     
     let team = 0;
-    if(custom_room.teams[0].length > custom_room.teams[1].length) {
+    let team_0_count = custom_room.users.filter((user_package)=>user_package.team == 0);
+    let team_1_count = custom_room.users.filter((user_package)=>user_package.team == 1);
+    if(team_0_count > team_1_count) {
         team = 1;
     }
     
-    custom_room.teams[0].push(player);
+    let player = {
+        id: user.id,
+        username: user.username, 
+        socket_id: client_socket.id,
+        team: team
+    }
+
+    custom_room.users.push(player);
     
     //hook up on disconnect
     client_socket.on('disconnect', ()=>OnUserLeaveCustomRoom(client_socket, custom_room));
@@ -59,39 +84,32 @@ const OnUserJoinCustomRoom = (client_socket, custom_room) => {
 const OnUserLeaveCustomRoom = (client_socket,custom_room) => {
     console.log(`user ${client_socket.id} has left`);
     
-    for(let team of custom_room.teams) {        
-        let index = team.findIndex((player)=>player.socket.id == client_socket.id);
-        if(index != -1) {
-            team.splice(index, 1);        
-        }        
-    }
+    let index = custom_room.users.findIndex((player)=>player.socket_id == client_socket.id);    
+    
+    if(index != -1) {
+        custom_room.users.splice(index, 1);        
+    }        
 
-    if(custom_room.teams[0].length == 0 && custom_room.teams[1].length == 0) {
+    if(custom_room.users.length == 0) {
         //clean up room
         custom_room.delete();
     }
 }
-const DispatchRoomStateUpdate = (custom_room) => {
-    // console.log(custom_room.namespace);
-    let final_teams = [[],[]];
-    for(let i in custom_room.teams) {
-        for(let player of custom_room.teams[i]) {
-            final_teams[i].push({
-                id: player.id,
-                username: player.username
-            })
-        }
-    }
-    
 
+const DispatchRoomStateUpdate = (custom_room) => {
+    
     custom_room.namespace.emit('CUSTOM_ROOM_UPDATE', {
         id: custom_room.id,
         name: custom_room.name,
         owner_id: custom_room.owner_id,
-        teams: final_teams,
+        users: custom_room.users,
         map: custom_room.map,
         config: custom_room.config,
     });
+}
+
+const OnRequestStartGame = (user_id, client_socket, custom_room) => {
+    custom_room.begin(custom_room);
 }
 
 module.exports = { NewCustomRoom };
