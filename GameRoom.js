@@ -289,9 +289,10 @@ const UpdateActions = function(gameroom) {
                 }
             } 
             else {
-                //if teammate in prisonm free him
-                if (other_player.prison) {
+                //2. if exactly one of us is in prison, both free
+                if (other_player.prison != player_with_action.prison) {
                     other_player.prison = false;
+                    player_with_action.prison = false;
                 }
 
                 //4. Passing flag
