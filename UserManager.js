@@ -2,7 +2,15 @@ let users = {
     '12345' : {
         id: '12345',
         username: 'elliotmoose'
-    }
+    },
+    '54321' : {
+        id: '54321',
+        username: 'enyi'
+    },
+    '12321' : {
+        id: '12321',
+        username: 'bgourd'
+    },
 }
 
 //TODO: read from db

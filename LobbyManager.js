@@ -148,14 +148,14 @@ var RequestFindNormalMatch = async function(user_id, client_socket) {
         });
     }
 
-    UpdateNormalMatchmakingQueue();
+    CheckStartGameForNormalMatchmakingQueue();
 };
 
 /**
  * Checks for potential matches
  * TODO: for now is simple, because no parties, just check length
  */
-var UpdateNormalMatchmakingQueue = () => {    
+var CheckStartGameForNormalMatchmakingQueue = () => {    
         
     if(normal_matchmaking_queue.length == Config.normal.max_players) {
         console.log('Pushing queue to lobby');

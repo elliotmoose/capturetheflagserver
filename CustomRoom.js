@@ -46,6 +46,7 @@ const OnUserJoinCustomRoom = (client_socket, custom_room) => {
         return;
     }
     client_socket.on('REQUEST_START_CUSTOM_GAME', ({user_id})=> OnRequestStartGame(user_id, client_socket, custom_room));
+    client_socket.on('REQUEST_JOIN_TEAM', ({user_id, team})=> OnRequestJoinTeam(user_id, team, client_socket, custom_room));
     client_socket.emit('COMMAND_GET_USER_ID');
     client_socket.on('REQUEST_SET_USER_ID', ({user_id}) => OnUserSetUserId(user_id, client_socket, custom_room));    
 }
@@ -108,8 +109,27 @@ const DispatchRoomStateUpdate = (custom_room) => {
     });
 }
 
-const OnRequestStartGame = (user_id, client_socket, custom_room) => {
-    custom_room.begin(custom_room);
+const OnRequestJoinTeam = (user_id, team, client_socket, custom_room) => {
+
+    //get this player object
+    let user = custom_room.users.find(p=>p.id == user_id);
+    let team_players = custom_room.users.filter(p=>p.team == team);
+    
+
+    //check if got space
+    if(user && team_players.length < custom_room.config.max_players) {
+        user.team = team; //change team
+    }
+
+    //update all
+    DispatchRoomStateUpdate(custom_room);
+}
+
+const OnRequestStartGame = (user_id, client_socket, custom_room) => {    
+    if(user_id == custom_room.owner_id) {
+        custom_room.begin(custom_room);
+    }
+    //TODO: error not owner
 }
 
 module.exports = { NewCustomRoom };
