@@ -76,6 +76,41 @@ let base = {
     position: [0,0],
     team: 0
 }
+
+
+let user = {
+    id: 'asdfgh',
+    username: 'elliotmoose',
+    socket: null, //user socket           
+};
+
+//a list of users/parties in queue
+let normal_matchmaking_queue = [
+    [user]
+]
+
+let custom_room_lobby = {
+    id: 'namespace_id',
+    name: 'room_name',
+    owner_id: 'elliotmoose',
+    team_0: [user, user],
+    team_1: [user, user],
+    map: {
+        bounds: {
+            width: 0,
+            height: 0
+        }
+    },
+    config : {
+        max_score: 5,
+        max_players: 10,
+        game_length: 10
+    },
+};
+
+let custom_game_rooms = {
+    room_id: custom_room_lobby
+}
 /*
 COMMUNICATION
 these are the events that can be called by the client/server

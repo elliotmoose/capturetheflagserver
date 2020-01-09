@@ -2,6 +2,7 @@ const { NewPlayer } = require("./Player");
 const { Vector2Subtract, Vector2Addition, Vector2Multiply, Vector2Magnitude, Vector2Normalize } = require('./helpers/Vectors');
 const { NewFlag } = require('./Flag');
 const { NewBase } = require('./Base');
+const uuid = require('uuid');
 
 // const ROOM_CAPACITY = 10;
 const CONTROLS_AGE_THRESHOLD = 700; //0.7s
@@ -16,10 +17,22 @@ const STA_FACTOR_FAST = 0.2;
 /**
  * Creates a game room from an id. Each namespace corresponds to a game room
  * @param {*} io
- * @param {*} id
  */
-const NewGameRoom = function(io, id) {
+const NewGameRoom = function(io, user_packages, config, id=uuid.v1()) {
     let namespace = io.of(id);
+    
+    let game_players = []
+    for(let user_package of user_packages) {
+        let team = user_package.team;
+
+        //if no team has been set (i.e. matchmaking games, cuz custom games preset teams)
+        if(!team) {
+            team = game_players.filter(p=>p.team == 0).length <= game_players.filter(p=>p.team == 1).length ? 0 : 1;
+        }
+        let player = NewPlayer(user_package.id, user_package.username, team);        
+        game_players.push(player);
+    }    
+
     //creates the room
     let gameroom = {
         id,
@@ -27,7 +40,7 @@ const NewGameRoom = function(io, id) {
         delta_time: 0,
         timestamp: Date.now(),
         state: {
-            players: [],
+            players: game_players,
             flags: [
                 NewFlag(0, BasePositionForTeam(0)),
                 NewFlag(1, BasePositionForTeam(1))
@@ -46,11 +59,7 @@ const NewGameRoom = function(io, id) {
                 height: MAP_HEIGHT
             }
         },
-        config : {
-            max_score: 5,
-            max_players: 10,
-            game_length: 10
-        },
+        config,
         namespace
     };
 
@@ -60,43 +69,43 @@ const NewGameRoom = function(io, id) {
 };
 
 const OnUserJoinRoom = (client_socket, gameroom) => {
-    console.log(`${client_socket.id} joined room ${gameroom.id}`);
-
-    //creates the respective player
-    //TODO: client_socket is id for now. In the future it should be their user account id
-    let team = gameroom.state.players.filter(p=>p.team == 0).length <= gameroom.state.players.filter(p=>p.team == 1) ? 0 : 1;
-    let player = NewPlayer(client_socket.id, client_socket, team);
-    player.position = SpawnPositionForTeam(player.team, player.radius, gameroom.map.bases[player.team].radius);
-
-    //adds player to the room
-    gameroom.state.players.push(player);        
-
-        
+    console.log(`${client_socket.id} joined room ${gameroom.id}`);   
+    
+    client_socket.emit('COMMAND_CONFIRM_CONNECT');
+    client_socket.on('REQUEST_CONFIRM_CONNECT', ({user_id}) => OnConfirmConnection(user_id, client_socket, gameroom));
+    
     //hooks up controls
-    client_socket.on("CONTROLS", controls => OnReceiveControls(controls, client_socket, gameroom));
+    client_socket.on("CONTROLS", ({user_id, controls}) => OnReceiveControls(controls, user_id, gameroom));
     client_socket.on('PING', ()=>client_socket.emit('PING'));
-    client_socket.emit('BIND_PLAYER', client_socket.id);
-    client_socket.emit('INIT_MAP', gameroom.map);
-
-    //check to start game
-    if (gameroom.state.players.length == gameroom.config.max_players) {
-        DispatchStartGame(gameroom);        
-    }
+    client_socket.emit('INIT_MAP', gameroom.map);    
 };
 
+const OnConfirmConnection = (user_id, client_socket, gameroom) => {
+    let player = gameroom.state.players.find(p=>p.id == user_id);
+    if(player) {
+        console.log(`Player ${player.username} has connected to the game room`);
+        player.connected = true;
+    }
+
+    UpdateShouldStartGame(gameroom);
+}
+
+
 /**
- * Updates the player connected by client_socket based on received controls
+ * Updates the player connected by user_id based on received controls
  * @param {*} controls
- * @param {*} client_socket
+ * @param {*} user_id
  * @param {*} gameroom
  */
-const OnReceiveControls = (controls, client_socket, gameroom) => {
-    let currentPlayer = gameroom.state.players.filter(player => player.socket_id == client_socket.id)[0];        
+const OnReceiveControls = (controls, user_id, gameroom) => {    
+    let currentPlayer = gameroom.state.players.filter(player => player.id == user_id)[0];        
     
-    currentPlayer.controls = {
-        ...controls,
-        timestamp: Date.now()
-    };
+    if(currentPlayer) {
+        currentPlayer.controls = {
+            ...controls,
+            timestamp: Date.now()
+        };
+    }
 };
 
 const UpdateDeltaTime = function(gameroom) {
@@ -362,17 +371,46 @@ const OnTeamWin = function(team, gameroom) {
 }
 
 const OnBeginSuddenDeath = function(gameroom) {
-    OnBeginSuddenDeath(gameroom);
+    // OnBeginSuddenDeath(gameroom);
 }
 //#endregion
 
+/**
+ * Game should start if
+ * 1. All players connected
+ * 2. Exceeded Waiting threshold //TODO:
+ * @param {*} gameroom 
+ */
+const UpdateShouldStartGame = function(gameroom) {
+    // let should_start_game = gameroom.state.players.length == gameroom.config.max_players;
+    let should_start_game = true;
+
+    // checks if all have connected
+    gameroom.state.players.forEach(p => {
+        if(!p.connected) {
+            console.log(`${p.username} not connected yet`);
+            should_start_game = false;
+        }
+    });
+
+    if (should_start_game) {
+        StartGame(gameroom);
+    }
+}
+
+const StartGame = function(gameroom) {
+    console.log(`gameroom started for ${gameroom.id}`);
+    ResetPositions(gameroom);
+    DispatchStartGame(gameroom);        
+}
+
 const DispatchStateForGameRoom = function(gameroom) {        
-    gameroom.namespace.emit("GAME_STATE", gameroom.state);
+    gameroom.namespace.volatile.emit("GAME_STATE", gameroom.state);
 };
 
 const DispatchStartGame = (gameroom) => {
     gameroom.start_time = Date.now();
-    gameroom.namespace.emit("GAME_START", gameroom.start_time);
+    gameroom.namespace.emit("GAME_START", gameroom.start_time);    
 }
 
 const DispatchEndGame = (team, gameroom) => {

@@ -1,3 +1,6 @@
 module.exports = {
-    ROOM_SIZE: 1
+    normal : {
+        max_players: 2,
+        game_length: 10
+    }
 }
