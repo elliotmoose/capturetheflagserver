@@ -17,12 +17,18 @@ let room = {
     start_time: null,
     delta_time: 0,      
     timestamp: Date.now(), // Timestamp to be updated whenever the room is updated. Used for deltaTime calculation
+    time_till_resume: null,
     state: {
         players: [],
         score: [0, 0],
         flags: [],
         in_progress: false,
         sudden_death: false,
+        pause: false,
+        announcements: [{
+            message,
+            time,
+        }],
     },
     map: {
         bases: [],
