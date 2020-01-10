@@ -44,7 +44,7 @@ var OnUserLeaveLobby = function(client_socket) {
 }
 
 //#region CUSTOM
-var RequestLoadLobbyRooms = function(client_socket) {        
+var RequestLoadLobbyRooms = function(client_socket) {
     let rooms = Object.values(custom_game_rooms).map(room => {
         return {
             id: room.id,
