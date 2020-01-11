@@ -225,6 +225,7 @@ const UpdateFlagPositions = function(gameroom) {
             let pickup_players = PlayersInRange(players, flag.position, flag.radius).filter(p=> p.team != flag.team);            
             if(pickup_players.length != 0) {            
                 flag.carrier_id = pickup_players[0].id;
+                Announce(`${flag.team==0 ? "Green" : "Red"} Team Flag Taken!`, gameroom);
             }            
         }
     }
@@ -330,13 +331,13 @@ const UpdatePause = function(gameroom) {
         if(gameroom.time_till_resume - gameroom.delta_time <= 0) {
             gameroom.time_till_resume = null;
             gameroom.state.pause = false;
-            Announce("Go!", 5000, gameroom);
+            Announce("Go!", gameroom);
         } else {
             gameroom.time_till_resume -= gameroom.delta_time;
-            let message = `Game will resume in ${Math.ceil(gameroom.time_till_resume/1000)}`
+            let message = `Get Ready! ${Math.ceil(gameroom.time_till_resume/1000)}`
             if(gameroom.state.announcements.length == 0 || 
                 message != gameroom.state.announcements[gameroom.state.announcements.length - 1].message){ // Only announce if different message
-                Announce(message, 5000, gameroom);
+                Announce(message, gameroom);
             }
         }
     }
@@ -402,6 +403,8 @@ const OnPlayerScore = function(player, gameroom) {
         OnTeamWin(player.team, gameroom);
     }
 
+
+    Announce(`${(player.team==0) ? "Green" : "Red"} Team Scores!`, gameroom);
     PauseWithTimer(3000, gameroom);
 }
 
@@ -441,6 +444,7 @@ const UpdateShouldStartGame = function(gameroom) {
 const StartGame = function(gameroom) {
     console.log(`gameroom started for ${gameroom.id}`);
     ResetPositions(gameroom);
+    PauseWithTimer(3000, gameroom); // Countdown start of game
     DispatchStartGame(gameroom);        
 }
 
@@ -473,13 +477,13 @@ const PauseWithTimer = (time, gameroom) => {
  * @param {number} time // Time in milliseconds
  * @param {*} gameroom 
  */
-const Announce = (message, time, gameroom) => {
+const Announce = (message, gameroom) => {
     if(gameroom.state.announcements.length == 3){
         gameroom.state.announcements.shift();
     }
     gameroom.state.announcements.push({
         message,
-        time,
+        time: 5000,
     })
 }
 
