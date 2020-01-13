@@ -50,7 +50,6 @@ const NewGameRoom = function(io, user_packages, config, id=uuid.v1()) {
             in_progress: false,      
             sudden_death: false,
             pause: false,
-            announcements: [],
         },
         map: {
             bases: [
@@ -225,7 +224,8 @@ const UpdateFlagPositions = function(gameroom) {
             let pickup_players = PlayersInRange(players, flag.position, flag.radius).filter(p=> p.team != flag.team);            
             if(pickup_players.length != 0) {            
                 flag.carrier_id = pickup_players[0].id;
-                Announce(`${flag.team==0 ? "Green" : "Red"} Team Flag Taken!`, gameroom);
+                DispatchAnnouncement({duration: 'LONG', layout: 'SUBTITLE', title: 'CAPTURED!', 
+                    subtitle: `${pickup_players[0].username} has captured the ${(flag.team == 0) ? 'green' : 'red'} team's flag`}, gameroom);
             }            
         }
     }
@@ -326,38 +326,22 @@ const UpdateScoring = function(gameroom) {
 }
 
 const UpdatePause = function(gameroom) {
-    // update the pause timer if applicable
-    if (gameroom.state.pause && gameroom.time_till_resume) {
-        if(gameroom.time_till_resume - gameroom.delta_time <= 0) {
-            gameroom.time_till_resume = null;
-            gameroom.state.pause = false;
-            Announce("Go!", gameroom);
-        } else {
-            gameroom.time_till_resume -= gameroom.delta_time;
-            let message = `Get Ready! ${Math.ceil(gameroom.time_till_resume/1000)}`
-            if(gameroom.state.announcements.length == 0 || 
-                message != gameroom.state.announcements[gameroom.state.announcements.length - 1].message){ // Only announce if different message
-                Announce(message, gameroom);
-            }
-        }
-    }
-}
+    gameroom.time_till_resume -= 1;
 
-const UpdateAnnouncements = function(gameroom) {
-    gameroom.state.announcements = gameroom.state.announcements.filter(announcement => {
-        announcement.time -= gameroom.delta_time;
-        if(announcement.time <= 0){
-            return false;
-        } 
-        return true;
-    })
+    if (gameroom.time_till_resume <= 0) {
+        DispatchAnnouncement({duration: 'SHORT', layout: 'LARGE', title: 'GO!', subtitle:''}, gameroom);
+        gameroom.state.pause = false;
+    } else {
+        if (gameroom.time_till_resume <= 3) {
+            DispatchAnnouncement({duration: 'SHORT', layout: 'LARGE', title: `${gameroom.time_till_resume}`, subtitle: ''}, gameroom);
+        }
+        setTimeout(() => {UpdatePause(gameroom)}, 1000);
+    }
 }
 
 const UpdateGameRoom = function(gameroom) {
     UpdateDeltaTime(gameroom);    
     UpdateControlsAge(gameroom);
-    UpdatePause(gameroom);
-    UpdateAnnouncements(gameroom);
 
     if (!gameroom.state.pause) { // Do not update most things if game is paused.
         UpdateFlagPositions(gameroom);
@@ -402,10 +386,9 @@ const OnPlayerScore = function(player, gameroom) {
     if(gameroom.state.score[player.team] == gameroom.config.max_score) {
         OnTeamWin(player.team, gameroom);
     }
-
-
-    Announce(`${(player.team==0) ? "Green" : "Red"} Team Scores!`, gameroom);
-    PauseWithTimer(3000, gameroom);
+    DispatchAnnouncement({duration: 'LONG', layout: 'SUBTITLE', title: 'SCORE!', 
+        subtitle: `${player.username} has scored a point for the ${player.team == 0 ? 'green' : 'red'} team`}, gameroom);
+    PauseWithTimer(5, gameroom);
 }
 
 const OnTeamWin = function(team, gameroom) {
@@ -444,7 +427,8 @@ const UpdateShouldStartGame = function(gameroom) {
 const StartGame = function(gameroom) {
     console.log(`gameroom started for ${gameroom.id}`);
     ResetPositions(gameroom);
-    PauseWithTimer(3000, gameroom); // Countdown start of game
+    DispatchAnnouncement({duration: 'LONG', layout: 'SUBTITLE', title: 'GAME STARTING', subtitle: 'get ready!'}, gameroom);
+    PauseWithTimer(5, gameroom); // Countdown start of game
     DispatchStartGame(gameroom);        
 }
 
@@ -462,29 +446,23 @@ const DispatchEndGame = (team, gameroom) => {
 }
 
 /**
- * Pauses the game for a set number of milliseconds
+ * Sends an announcement to the client
+ * @param {*} message // Message object as defined in template
  * @param {*} gameroom 
- * @param {number} time // Time in milliseconds
+ */
+const DispatchAnnouncement = (message, gameroom) => {
+    gameroom.namespace.volatile.emit("ANNOUNCEMENT", message);
+}
+
+/**
+ * Pauses the game for a set number of seconds. Minimum time is 1.
+ * @param {*} gameroom 
+ * @param {number} time // Time in seconds
  */
 const PauseWithTimer = (time, gameroom) => {
     gameroom.state.pause = true;
     gameroom.time_till_resume = time;
-}
-
-/**
- * Announces a message for a set number of milliseconds
- * @param {string} message 
- * @param {number} time // Time in milliseconds
- * @param {*} gameroom 
- */
-const Announce = (message, gameroom) => {
-    if(gameroom.state.announcements.length == 3){
-        gameroom.state.announcements.shift();
-    }
-    gameroom.state.announcements.push({
-        message,
-        time: 5000,
-    })
+    setTimeout(() => {UpdatePause(gameroom)}, 1000);
 }
 
 //#region helper functions

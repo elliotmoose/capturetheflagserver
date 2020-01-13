@@ -17,7 +17,7 @@ let room = {
     start_time: null,
     delta_time: 0,      
     timestamp: Date.now(), // Timestamp to be updated whenever the room is updated. Used for deltaTime calculation
-    time_till_resume: null,
+    time_till_resume: 0,
     state: {
         players: [],
         score: [0, 0],
@@ -25,10 +25,6 @@ let room = {
         in_progress: false,
         sudden_death: false,
         pause: false,
-        announcements: [{
-            message,
-            time,
-        }],
     },
     map: {
         bases: [],
@@ -89,6 +85,16 @@ let user = {
     username: 'elliotmoose',
     socket: null, //user socket           
 };
+
+/**
+ * Message object to be sent to client everytime there is an annoucement to be made (player score, countdown to game resume etc)
+ */
+let message = {
+    duration: 'LONG', // SHORT, MEDIUM, LONG
+    layout: 'SUBTITLE', // SUBTITLE, SMALL, LARGE
+    title: 'Lorem Ipsum',
+    subtitle: 'Loem Ipsum',
+}
 
 //a list of users/parties in queue
 let normal_matchmaking_queue = [
