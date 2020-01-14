@@ -333,13 +333,17 @@ const UpdatePause = function(gameroom) {
         gameroom.state.pause = false;
     } else {
         if (gameroom.time_till_resume <= 3) {
-            DispatchAnnouncement({duration: 'SHORT', layout: 'LARGE', title: `${gameroom.time_till_resume}`, subtitle: ''}, gameroom);
+            DispatchAnnouncement({duration: 'VERY_SHORT', layout: 'LARGE', title: `${gameroom.time_till_resume}`, subtitle: ''}, gameroom);
         }
         setTimeout(() => {UpdatePause(gameroom)}, 1000);
     }
 }
 
-const UpdateGameRoom = function(gameroom) {
+const UpdateGameRoom = function(gameroom) {    
+    if(!gameroom.state.in_progress) {
+        return;
+    }
+
     UpdateDeltaTime(gameroom);    
     UpdateControlsAge(gameroom);
 
@@ -381,14 +385,17 @@ const ResetPositions = function(gameroom) {
 const OnPlayerScore = function(player, gameroom) {    
     ResetPositions(gameroom);
     gameroom.state.score[player.team] += 1;    
+     
 
     //check win
     if(gameroom.state.score[player.team] == gameroom.config.max_score) {
-        OnTeamWin(player.team, gameroom);
+        OnTeamWin(player.team, gameroom);                    
     }
-    DispatchAnnouncement({duration: 'LONG', layout: 'SUBTITLE', title: 'SCORE!', 
-        subtitle: `${player.username} has scored a point for the ${player.team == 0 ? 'green' : 'red'} team`}, gameroom);
-    PauseWithTimer(5, gameroom);
+    else {
+        DispatchAnnouncement({duration: 'LONG', layout: 'SUBTITLE', title: 'SCORE!', 
+            subtitle: `${player.username} has scored a point for the ${player.team == 0 ? 'green' : 'red'} team`}, gameroom);
+        PauseWithTimer(5, gameroom);
+    }
 }
 
 const OnTeamWin = function(team, gameroom) {
@@ -426,8 +433,9 @@ const UpdateShouldStartGame = function(gameroom) {
 
 const StartGame = function(gameroom) {
     console.log(`gameroom started for ${gameroom.id}`);
+    gameroom.state.in_progress = true;
     ResetPositions(gameroom);
-    DispatchAnnouncement({duration: 'LONG', layout: 'SUBTITLE', title: 'GAME STARTING', subtitle: 'get ready!'}, gameroom);
+    DispatchAnnouncement({duration: 'LONG', layout: 'SUBTITLE', title: 'GAME STARTING', subtitle: 'get ready!'}, gameroom);    
     PauseWithTimer(5, gameroom); // Countdown start of game
     DispatchStartGame(gameroom);        
 }
@@ -442,6 +450,8 @@ const DispatchStartGame = (gameroom) => {
 }
 
 const DispatchEndGame = (team, gameroom) => {
+    DispatchAnnouncement({duration: 'FOREVER', layout: 'SUBTITLE', title: 'GAME OVER', subtitle: 'back to lobby'}, gameroom);
+    gameroom.namespace.emit("GAME_STATE", gameroom.state);
     gameroom.namespace.emit("GAME_END", team);
 }
 
