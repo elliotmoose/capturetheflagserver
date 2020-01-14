@@ -1,5 +1,6 @@
 const uuid = require("uuid");
 const UserManager = require("./UserManager");
+const Config = require("./Config");
 
 const CONTROLS_AGE_THRESHOLD = 700; //0.7s
 const MAP_WIDTH = 1500;
@@ -21,11 +22,7 @@ const NewCustomRoom = function(owner_id, room_name, io, begin_callback, delete_c
                 height: MAP_HEIGHT
             }
         },
-        config : {
-            max_score: 5,
-            max_players: 10,
-            game_length: 10
-        },
+        config : Config.normal,
         namespace,
         begin: ()=>{begin_callback(id)},    
         delete: ()=>{delete_callback(id)}    
