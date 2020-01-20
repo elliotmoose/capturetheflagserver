@@ -7,7 +7,19 @@ const port = 3000;
 const api_v1 = require('./v1/api');
 
 const LobbyManager = require("./LobbyManager");
+const UserManager = require('./UserManager');
+
 const { NewPlayer } = require("./Player");
+
+const MySQLDriver = require('mysqldriver');
+
+const db = new MySQLDriver({
+    host: '127.0.0.1',
+    user: 'anon',
+    password: 'anon',
+    database: 'capturetheflag',
+    port: 3306
+});
 
 const FPS = 20; //20; //server frame rate
 
@@ -34,6 +46,7 @@ var InitializeServerClock = function() {
  * Main
  */
 LobbyManager.InitializeLobbyManager(io); //set io
+UserManager.InitializeUserManager(db); //set io
 InitializeServerClock(); //start game updates
 
 server.listen(port, () => {

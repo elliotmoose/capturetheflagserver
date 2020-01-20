@@ -124,31 +124,36 @@ var RequestFindMatch = function(user_id, type, client_socket) {
  */
 var RequestFindNormalMatch = async function(user_id, client_socket) {
     
-    let user = await UserManager.GetUserFromId(user_id);
+    try {
+        let user = await UserManager.GetUserFromId(user_id);
     
-    if(!user) {
-        return;
+        if(!user) {
+            return;
+        }
+
+        console.log(`${user.username} has joined the queue`);        
+        
+        let user_package = {
+            id: user.id,
+            username: user.username,
+            socket_id: client_socket.id
+        }
+        
+        normal_matchmaking_queue.push(user_package);
+
+
+        for(let user_package of normal_matchmaking_queue) {
+            io.to(user_package.socket_id).emit('COMMAND_UPDATE_FIND_MATCH', {
+                current_players: normal_matchmaking_queue.length,
+                max_players: Config.normal.max_players
+            });
+        }
+
+        CheckStartGameForNormalMatchmakingQueue();
+    } 
+    catch (error) {
+        console.log(error);
     }
-
-    console.log(`${user.username} has joined the queue`);        
-    
-    let user_package = {
-        id: user.id,
-        username: user.username,
-        socket_id: client_socket.id
-    }
-    
-    normal_matchmaking_queue.push(user_package);
-
-
-    for(let user_package of normal_matchmaking_queue) {
-        io.to(user_package.socket_id).emit('COMMAND_UPDATE_FIND_MATCH', {
-            current_players: normal_matchmaking_queue.length,
-            max_players: Config.normal.max_players
-        });
-    }
-
-    CheckStartGameForNormalMatchmakingQueue();
 };
 
 /**

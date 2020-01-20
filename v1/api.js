@@ -17,22 +17,52 @@ app.get('/', async (req,res) =>{
 app.post('/signup', verifyAuth, async (req,res) =>{
 
     let username = req.body.username;
+    let device_id = req.body.device_id;
     // let score = req.body.score;
     // let deviceID = req.body.deviceID;
     let date = Date.now();
 
     try {
         try {
-            CheckRequiredFields({username});
+            CheckRequiredFields({username, device_id});
         } catch (error) {
             Error('MISSING_FIELDS','Missing Fields', error,res);
             return;
         }
 
         try {
-            let newUser = await UserManager.CreateNewUser(username);
+            let newUser = await UserManager.CreateNewUser(username, device_id);
             console.log(newUser);
             Respond('SUCCESS',newUser,res);
+            return;
+        } catch (error) {
+            Respond('ERROR', error ,res);
+            return;
+        }
+
+    } catch (error) {
+        console.log(error);
+        InternalServerError(res, error);
+        return
+    }    
+})
+
+app.post('/login', verifyAuth, async (req,res) =>{
+    let user_id = req.body.user_id;
+    let device_id = req.body.device_id;
+
+    try {
+        try {
+            CheckRequiredFields({user_id, device_id});
+        } catch (error) {
+            Error('MISSING_FIELDS','Missing Fields', error,res);
+            return;
+        }
+
+        try {
+            let user = await UserManager.GetUserFromId(user_id);
+            console.log(`${user.username} logged in`);
+            Respond('SUCCESS',user,res);
             return;
         } catch (error) {
             Respond('ERROR', error ,res);

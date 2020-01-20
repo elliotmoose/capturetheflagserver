@@ -49,34 +49,39 @@ const OnUserJoinCustomRoom = (client_socket, custom_room) => {
 }
 
 const OnUserSetUserId = async (user_id, client_socket, custom_room) => {
-    //retrieve username etc
-    let user = await UserManager.GetUserFromId(user_id);
+    try {
+        //retrieve username etc
+        let user = await UserManager.GetUserFromId(user_id);
 
-    if(!user) {
-        return;
+        if(!user) {
+            return;
+        }
+
+        
+        let team = 0;
+        let team_0_count = custom_room.users.filter((user_package)=>user_package.team == 0);
+        let team_1_count = custom_room.users.filter((user_package)=>user_package.team == 1);
+        if(team_0_count > team_1_count) {
+            team = 1;
+        }
+        
+        let player = {
+            id: user.id,
+            username: user.username, 
+            socket_id: client_socket.id,
+            team: team
+        }
+
+        custom_room.users.push(player);
+        
+        //hook up on disconnect
+        client_socket.on('disconnect', ()=>OnUserLeaveCustomRoom(client_socket, custom_room));
+
+        DispatchRoomStateUpdate(custom_room);    
+    } 
+    catch (error) {
+        console.log(error);
     }
-
-    
-    let team = 0;
-    let team_0_count = custom_room.users.filter((user_package)=>user_package.team == 0);
-    let team_1_count = custom_room.users.filter((user_package)=>user_package.team == 1);
-    if(team_0_count > team_1_count) {
-        team = 1;
-    }
-    
-    let player = {
-        id: user.id,
-        username: user.username, 
-        socket_id: client_socket.id,
-        team: team
-    }
-
-    custom_room.users.push(player);
-    
-    //hook up on disconnect
-    client_socket.on('disconnect', ()=>OnUserLeaveCustomRoom(client_socket, custom_room));
-
-    DispatchRoomStateUpdate(custom_room);    
 }
 
 const OnUserLeaveCustomRoom = (client_socket,custom_room) => {
