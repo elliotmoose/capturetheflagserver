@@ -29,7 +29,7 @@ var OnUserJoinLobby = function(client_socket) {
     client_socket.on("disconnect", ()=>OnUserLeaveLobby(client_socket));
     //CUSTOM
     client_socket.on("REQUEST_LOAD_LOBBY_ROOMS", ()=>RequestLoadLobbyRooms(client_socket));
-    client_socket.on("REQUEST_CREATE_CUSTOM_ROOM", ({user_id, room_name})=>RequestCreateCustomRoom(user_id, room_name, client_socket));
+    client_socket.on("REQUEST_CREATE_CUSTOM_ROOM", ({user_id, room_name, config})=>RequestCreateCustomRoom(user_id, room_name, config, client_socket));
     client_socket.on("REQUEST_JOIN_CUSTOM_ROOM", room_id => RequestJoinCustomRoom(room_id, client_socket));
 
     //NORMAL
@@ -57,8 +57,8 @@ var RequestLoadLobbyRooms = function(client_socket) {
     client_socket.emit("LOBBY_ROOMS_UPDATE", rooms);
 }
 
-var RequestCreateCustomRoom = function(user_id, room_name, client_socket) {
-    console.log(`custom room "${room_name}" created for user: ${user_id}`);
+var RequestCreateCustomRoom = function(user_id, room_name, config, client_socket) {
+    console.log(`custom room "${room_name}" created for user: ${user_id} with config: ${JSON.stringify(config)}`);
         
     //convert room from custom_game to active game
     let begin_room = (room_id) => {
@@ -73,10 +73,12 @@ var RequestCreateCustomRoom = function(user_id, room_name, client_socket) {
         console.log(`deleting room with id: ${room_id}`);
         delete custom_game_rooms[room_id];
     }
-
     
-    let new_room = CustomRoom.NewCustomRoom(user_id, room_name, io, begin_room, delete_room);
+    let new_room = CustomRoom.NewCustomRoom(user_id, room_name, config, io, begin_room, delete_room);
     custom_game_rooms[new_room.id] = new_room;
+
+    //get user to join room he created
+    RequestJoinCustomRoom(new_room.id, client_socket);
 }
 /**
  * Handles client requests to joins a room

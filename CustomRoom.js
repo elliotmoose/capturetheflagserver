@@ -7,9 +7,18 @@ const MAP_WIDTH = 1500;
 const MAP_HEIGHT = 2500;
 const BASE_MARGIN = 150;
 
-const NewCustomRoom = function(owner_id, room_name, io, begin_callback, delete_callback ) {
+const NewCustomRoom = function(owner_id, room_name, config, io, begin_callback, delete_callback ) {
     let id = uuid.v1();
     let namespace = io.of(id);
+
+
+
+    //check config
+    config.max_players = config.max_players || 10;
+    config.max_score = config.max_score || 10;
+    config.game_length = config.game_length || 10;
+    
+
     //creates the room
     let custom_room = {
         id,        
@@ -22,7 +31,7 @@ const NewCustomRoom = function(owner_id, room_name, io, begin_callback, delete_c
                 height: MAP_HEIGHT
             }
         },
-        config : Config.normal,
+        config,
         namespace,
         begin: ()=>{begin_callback(id)},    
         delete: ()=>{delete_callback(id)}    
