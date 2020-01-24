@@ -100,12 +100,18 @@ const OnUserLeaveCustomRoom = (client_socket,custom_room) => {
     
     if(index != -1) {
         custom_room.users.splice(index, 1);        
+        
+        if(custom_room.users.length == 0) {
+            //clean up room
+            custom_room.delete();
+        }
+        else {
+            if(custom_room.owner_id == custom_room.users[index].id) {
+                custom_room.owner_id = custom_room.users[0];
+            }
+        }
     }        
-
-    if(custom_room.users.length == 0) {
-        //clean up room
-        custom_room.delete();
-    }
+    
 }
 
 const DispatchRoomStateUpdate = (custom_room) => {
