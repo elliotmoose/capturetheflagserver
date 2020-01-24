@@ -64,13 +64,21 @@ var RequestCreateCustomRoom = function(user_id, room_name, config, client_socket
     let begin_room = (room_id) => {
         let room = custom_game_rooms[room_id];
         let players = room.users;
-        let gameroom = GameRoom.NewGameRoom(io, players, room.config);        
+        
+        let delete_room = (room_id) => {
+            console.log(`deleting game room with id: ${room_id}`);
+            delete active_game_rooms[room_id];
+        }
+            
+        let gameroom = GameRoom.NewGameRoom(io, players, room.config, delete_room);        
         BeginGameForPlayersAndGameRoom(players, gameroom, io.of(room.id));
+
+        //clean up custom room
         delete custom_game_rooms[room_id];        
     }
     
     let delete_room = (room_id) => {
-        console.log(`deleting room with id: ${room_id}`);
+        console.log(`deleting custom room with id: ${room_id}`);
         delete custom_game_rooms[room_id];
     }
     
@@ -167,9 +175,14 @@ var CheckStartGameForNormalMatchmakingQueue = () => {
     if(normal_matchmaking_queue.length == Config.normal.max_players) {
         console.log('Pushing queue to lobby');
 
+        let delete_room = (room_id) => {
+            console.log(`deleting game room with id: ${room_id}`);
+            delete active_game_rooms[room_id];
+        }
+
         //create game room
         let players = normal_matchmaking_queue;
-        let gameroom = GameRoom.NewGameRoom(io, players, Config.normal);
+        let gameroom = GameRoom.NewGameRoom(io, players, Config.normal, delete_room);
         BeginGameForPlayersAndGameRoom(players, gameroom, io);
 
         //reset queue
@@ -185,7 +198,8 @@ var CheckStartGameForNormalMatchmakingQueue = () => {
  * @param {*} socket_io could be the io, or could be a namespace (custom rooms). both ways we want to tell specific users to join the new game room
  */
 var BeginGameForPlayersAndGameRoom = (players, gameroom, socket_io) => {    
-    active_game_rooms[gameroom.id] = gameroom;
+    active_game_rooms[gameroom.id] = gameroom;    
+
     DispatchJoinGameRoom(players, gameroom, socket_io);
 }
 

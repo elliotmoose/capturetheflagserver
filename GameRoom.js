@@ -18,7 +18,8 @@ const STA_FACTOR_FAST = 0.2;
  * Creates a game room from an id. Each namespace corresponds to a game room
  * @param {*} io
  */
-const NewGameRoom = function(io, user_packages, config, id=uuid.v1()) {
+const NewGameRoom = function(io, user_packages, config, delete_callback) {
+    let id = uuid.v1()
     let namespace = io.of(id);
     
     let game_players = []
@@ -62,7 +63,8 @@ const NewGameRoom = function(io, user_packages, config, id=uuid.v1()) {
             }
         },
         config,
-        namespace
+        namespace,
+        delete: () => delete_callback(id)
     };
 
     namespace.on("connection", client_socket => OnUserJoinRoom(client_socket, gameroom));
@@ -400,7 +402,8 @@ const OnPlayerScore = function(player, gameroom) {
 
 const OnTeamWin = function(team, gameroom) {
     gameroom.state.in_progress = false;
-    DispatchEndGame(team, gameroom) //kick players to lobby
+    DispatchEndGame(team, gameroom); //kick players to lobby
+    gameroom.delete() //delete room
 }
 
 const OnBeginSuddenDeath = function(gameroom) {

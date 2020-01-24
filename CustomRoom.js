@@ -144,7 +144,7 @@ const OnRequestJoinTeam = (user_id, team, client_socket, custom_room) => {
 
 const OnRequestStartGame = (user_id, client_socket, custom_room) => {    
     if(user_id == custom_room.owner_id) {
-        custom_room.begin(custom_room);
+        custom_room.begin();
     }
     //TODO: error not owner
 }
