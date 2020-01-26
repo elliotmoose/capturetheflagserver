@@ -39,6 +39,7 @@ var OnUserJoinLobby = function(client_socket) {
 var OnUserLeaveLobby = function(client_socket) {    
     let index = normal_matchmaking_queue.findIndex((player)=> player.socket_id == client_socket.id);
     if(index != -1) {
+        console.log(`${normal_matchmaking_queue[index].username } has left the queue`);        
         normal_matchmaking_queue.splice(index, 1);
     }
 }
@@ -64,13 +65,8 @@ var RequestCreateCustomRoom = function(user_id, room_name, config, client_socket
     let begin_room = (room_id) => {
         let room = custom_game_rooms[room_id];
         let players = room.users;
-        
-        let delete_room = (room_id) => {
-            console.log(`deleting game room with id: ${room_id}`);
-            delete active_game_rooms[room_id];
-        }
             
-        let gameroom = GameRoom.NewGameRoom(io, players, room.config, delete_room);        
+        let gameroom = GameRoom.NewGameRoom(io, players, room.config, UpdatePlayerStats, DeleteGameRoomWithId);        
         BeginGameForPlayersAndGameRoom(players, gameroom, io.of(room.id));
 
         //clean up custom room
@@ -182,7 +178,7 @@ var CheckStartGameForNormalMatchmakingQueue = () => {
 
         //create game room
         let players = normal_matchmaking_queue;
-        let gameroom = GameRoom.NewGameRoom(io, players, Config.normal, delete_room);
+        let gameroom = GameRoom.NewGameRoom(io, players, Config.normal, UpdatePlayerStats, DeleteGameRoomWithId);
         BeginGameForPlayersAndGameRoom(players, gameroom, io);
 
         //reset queue
@@ -201,6 +197,23 @@ var BeginGameForPlayersAndGameRoom = (players, gameroom, socket_io) => {
     active_game_rooms[gameroom.id] = gameroom;    
 
     DispatchJoinGameRoom(players, gameroom, socket_io);
+}
+
+var UpdatePlayerStats = (winning_team, players)=>{        
+    
+    players.forEach(player => {       
+        if(winning_team == -1) { //draw
+            UserManager.AddUserStats(0,0, player.flags_scored, player.id);
+        }
+        else {
+            UserManager.AddUserStats(winning_team == player.team ? 1:0, winning_team == player.team ? 0 : 1, player.flags_scored, player.id);        
+        }
+    });
+}
+
+var DeleteGameRoomWithId = (room_id) => {
+    console.log(`deleting game room with id: ${room_id}`);
+    delete active_game_rooms[room_id];
 }
 
 var UpdateGameRooms = function() {

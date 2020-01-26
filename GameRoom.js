@@ -18,7 +18,7 @@ const STA_FACTOR_FAST = 0.2;
  * Creates a game room from an id. Each namespace corresponds to a game room
  * @param {*} io
  */
-const NewGameRoom = function(io, user_packages, config, delete_callback) {
+const NewGameRoom = function(io, user_packages, config, update_player_stats_callback, delete_callback) {
     let id = uuid.v1()
     let namespace = io.of(id);
     
@@ -51,6 +51,7 @@ const NewGameRoom = function(io, user_packages, config, delete_callback) {
             in_progress: false,      
             sudden_death: false,
             pause: false,
+            remainding_time: 0
         },
         map: {
             bases: [
@@ -64,7 +65,8 @@ const NewGameRoom = function(io, user_packages, config, delete_callback) {
         },
         config,
         namespace,
-        delete: () => delete_callback(id)
+        delete: () => delete_callback(id),
+        update_player_stats: (winners, losers)=>update_player_stats_callback(winners, losers)
     };
 
     namespace.on("connection", client_socket => OnUserJoinRoom(client_socket, gameroom));
@@ -117,13 +119,11 @@ const UpdateDeltaTime = function(gameroom) {
     gameroom.timestamp = Date.now();
 
     let game_time_millis = Date.now() - gameroom.start_time;
-    let game_time_minutes = (game_time_millis/1000)/60;
-    //if game has exceed stipulated length
-    if(game_time_minutes >= gameroom.config.game_length) {
-        //if not sudden death and should
-        if(gameroom.state.sudden_death != true && gameroom.state.score[0] == gameroom.state.score[1]) {
-            gameroom.state.sudden_death = true;
-            OnBeginSuddenDeath(gameroom);
+    gameroom.state.remainding_time = gameroom.config.game_length*60*1000 - game_time_millis;
+    
+    if(gameroom.state.remainding_time <= 0) {
+        if(gameroom.state.score[0] == gameroom.state.score[1]) {
+            OnTeamWin(-1, gameroom); //tie
         }
         else {
             let win_team = gameroom.state.score[0] > gameroom.state.score[1] ? 0 : 1;
@@ -387,7 +387,7 @@ const ResetPositions = function(gameroom) {
 const OnPlayerScore = function(player, gameroom) {    
     ResetPositions(gameroom);
     gameroom.state.score[player.team] += 1;    
-     
+    player.flags_scored += 1;
 
     //check win
     if(gameroom.state.score[player.team] == gameroom.config.max_score) {
@@ -402,13 +402,14 @@ const OnPlayerScore = function(player, gameroom) {
 
 const OnTeamWin = function(team, gameroom) {
     gameroom.state.in_progress = false;
-    DispatchEndGame(team, gameroom); //kick players to lobby
-    gameroom.delete() //delete room
+    DispatchEndGame(team, gameroom); //kick players to lobby    
+    gameroom.update_player_stats(team, gameroom.state.players); //all are winners        
+    gameroom.delete() //delete room    
 }
 
-const OnBeginSuddenDeath = function(gameroom) {
-    // OnBeginSuddenDeath(gameroom);
-}
+// const OnBeginSuddenDeath = function(gameroom) {
+//     // OnBeginSuddenDeath(gameroom);
+// }
 //#endregion
 
 /**
@@ -453,7 +454,8 @@ const DispatchStartGame = (gameroom) => {
 }
 
 const DispatchEndGame = (team, gameroom) => {
-    DispatchAnnouncement({duration: 'FOREVER', layout: 'SUBTITLE', title: 'GAME OVER', subtitle: 'back to lobby'}, gameroom);
+    let announcement_title = team == -1 ? "IT'S A TIE!" : `${['GREEN', 'RED'][team]} TEAM WINS!`;
+    DispatchAnnouncement({duration: 'FOREVER', layout: 'SUBTITLE', title: announcement_title, subtitle: 'back to lobby'}, gameroom);
     gameroom.namespace.emit("GAME_STATE", gameroom.state);
     gameroom.namespace.emit("GAME_END", team);
 }

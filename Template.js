@@ -61,7 +61,8 @@ let player = {
         action: false,
         sprint: false,
         timestamp: Date.now()
-    }
+    },
+    flags_scored : 0
 };
 
 let flag = {

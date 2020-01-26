@@ -19,6 +19,7 @@ const NewPlayer = function(user_id, username, team){
         sprint: false,
         team: team,
         prison: false,
+        flags_scored: 0,
         controls : {
             angle: null,
             action: false,

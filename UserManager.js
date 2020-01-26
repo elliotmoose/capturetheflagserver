@@ -61,7 +61,23 @@ const CreateNewUser = async (username, device_id) => {
     }    
 }
 
+const AddUserStats = async (win, lose, flags, user_id) => {
+    
+    let user = await db.getRecord('users', {id:user_id});
+
+    if(user !== undefined) {
+        await db.updateRecords('users', {
+            wins: user.wins + win, 
+            losses: user.losses + lose, 
+            flags: user.flags + flags
+        }, {id:user_id});
+    }
+    else {        
+        console.log(`Could not find user with id: ${user_id}`);
+    }   
+};
+
 const InitializeUserManager = (db_ref) => {
     db = db_ref;
 }
-module.exports = { InitializeUserManager, CreateNewUser, GetUserFromId };
+module.exports = { InitializeUserManager, CreateNewUser, GetUserFromId, AddUserStats };
