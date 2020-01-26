@@ -29,7 +29,7 @@ var OnUserJoinLobby = function(client_socket) {
     client_socket.on("disconnect", ()=>OnUserLeaveLobby(client_socket));
     //CUSTOM
     client_socket.on("REQUEST_LOAD_LOBBY_ROOMS", ()=>RequestLoadLobbyRooms(client_socket));
-    client_socket.on("REQUEST_CREATE_CUSTOM_ROOM", ({user_id, room_name})=>RequestCreateCustomRoom(user_id, room_name, client_socket));
+    client_socket.on("REQUEST_CREATE_CUSTOM_ROOM", ({user_id, room_name, config})=>RequestCreateCustomRoom(user_id, room_name, config, client_socket));
     client_socket.on("REQUEST_JOIN_CUSTOM_ROOM", room_id => RequestJoinCustomRoom(room_id, client_socket));
 
     //NORMAL
@@ -39,6 +39,7 @@ var OnUserJoinLobby = function(client_socket) {
 var OnUserLeaveLobby = function(client_socket) {    
     let index = normal_matchmaking_queue.findIndex((player)=> player.socket_id == client_socket.id);
     if(index != -1) {
+        console.log(`${normal_matchmaking_queue[index].username } has left the queue`);        
         normal_matchmaking_queue.splice(index, 1);
     }
 }
@@ -57,26 +58,31 @@ var RequestLoadLobbyRooms = function(client_socket) {
     client_socket.emit("LOBBY_ROOMS_UPDATE", rooms);
 }
 
-var RequestCreateCustomRoom = function(user_id, room_name, client_socket) {
-    console.log(`custom room "${room_name}" created for user: ${user_id}`);
+var RequestCreateCustomRoom = function(user_id, room_name, config, client_socket) {
+    console.log(`custom room "${room_name}" created for user: ${user_id} with config: ${JSON.stringify(config)}`);
         
     //convert room from custom_game to active game
     let begin_room = (room_id) => {
         let room = custom_game_rooms[room_id];
         let players = room.users;
-        let gameroom = GameRoom.NewGameRoom(io, players, room.config);        
+            
+        let gameroom = GameRoom.NewGameRoom(io, players, room.config, UpdatePlayerStats, DeleteGameRoomWithId);        
         BeginGameForPlayersAndGameRoom(players, gameroom, io.of(room.id));
+
+        //clean up custom room
         delete custom_game_rooms[room_id];        
     }
     
     let delete_room = (room_id) => {
-        console.log(`deleting room with id: ${room_id}`);
+        console.log(`deleting custom room with id: ${room_id}`);
         delete custom_game_rooms[room_id];
     }
-
     
-    let new_room = CustomRoom.NewCustomRoom(user_id, room_name, io, begin_room, delete_room);
+    let new_room = CustomRoom.NewCustomRoom(user_id, room_name, config, io, begin_room, delete_room);
     custom_game_rooms[new_room.id] = new_room;
+
+    //get user to join room he created
+    RequestJoinCustomRoom(new_room.id, client_socket);
 }
 /**
  * Handles client requests to joins a room
@@ -124,31 +130,36 @@ var RequestFindMatch = function(user_id, type, client_socket) {
  */
 var RequestFindNormalMatch = async function(user_id, client_socket) {
     
-    let user = await UserManager.GetUserFromId(user_id);
+    try {
+        let user = await UserManager.GetUserFromId(user_id);
     
-    if(!user) {
-        return;
+        if(!user) {
+            return;
+        }
+
+        console.log(`${user.username} has joined the queue`);        
+        
+        let user_package = {
+            id: user.id,
+            username: user.username,
+            socket_id: client_socket.id
+        }
+        
+        normal_matchmaking_queue.push(user_package);
+
+
+        for(let user_package of normal_matchmaking_queue) {
+            io.to(user_package.socket_id).emit('COMMAND_UPDATE_FIND_MATCH', {
+                current_players: normal_matchmaking_queue.length,
+                max_players: Config.normal.max_players
+            });
+        }
+
+        CheckStartGameForNormalMatchmakingQueue();
+    } 
+    catch (error) {
+        console.log(error);
     }
-
-    console.log(`${user.username} has joined the queue`);        
-    
-    let user_package = {
-        id: user.id,
-        username: user.username,
-        socket_id: client_socket.id
-    }
-    
-    normal_matchmaking_queue.push(user_package);
-
-
-    for(let user_package of normal_matchmaking_queue) {
-        io.to(user_package.socket_id).emit('COMMAND_UPDATE_FIND_MATCH', {
-            current_players: normal_matchmaking_queue.length,
-            max_players: Config.normal.max_players
-        });
-    }
-
-    CheckStartGameForNormalMatchmakingQueue();
 };
 
 /**
@@ -160,9 +171,14 @@ var CheckStartGameForNormalMatchmakingQueue = () => {
     if(normal_matchmaking_queue.length == Config.normal.max_players) {
         console.log('Pushing queue to lobby');
 
+        let delete_room = (room_id) => {
+            console.log(`deleting game room with id: ${room_id}`);
+            delete active_game_rooms[room_id];
+        }
+
         //create game room
         let players = normal_matchmaking_queue;
-        let gameroom = GameRoom.NewGameRoom(io, players, Config.normal);
+        let gameroom = GameRoom.NewGameRoom(io, players, Config.normal, UpdatePlayerStats, DeleteGameRoomWithId);
         BeginGameForPlayersAndGameRoom(players, gameroom, io);
 
         //reset queue
@@ -178,8 +194,26 @@ var CheckStartGameForNormalMatchmakingQueue = () => {
  * @param {*} socket_io could be the io, or could be a namespace (custom rooms). both ways we want to tell specific users to join the new game room
  */
 var BeginGameForPlayersAndGameRoom = (players, gameroom, socket_io) => {    
-    active_game_rooms[gameroom.id] = gameroom;
+    active_game_rooms[gameroom.id] = gameroom;    
+
     DispatchJoinGameRoom(players, gameroom, socket_io);
+}
+
+var UpdatePlayerStats = (winning_team, players)=>{        
+    
+    players.forEach(player => {       
+        if(winning_team == -1) { //draw
+            UserManager.AddUserStats(0,0, player.flags_scored, player.id);
+        }
+        else {
+            UserManager.AddUserStats(winning_team == player.team ? 1:0, winning_team == player.team ? 0 : 1, player.flags_scored, player.id);        
+        }
+    });
+}
+
+var DeleteGameRoomWithId = (room_id) => {
+    console.log(`deleting game room with id: ${room_id}`);
+    delete active_game_rooms[room_id];
 }
 
 var UpdateGameRooms = function() {
