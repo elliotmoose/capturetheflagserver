@@ -55,6 +55,7 @@ const OnUserJoinCustomRoom = (client_socket, custom_room) => {
     client_socket.on('REQUEST_JOIN_TEAM', ({user_id, team})=> OnRequestJoinTeam(user_id, team, client_socket, custom_room));
     client_socket.emit('COMMAND_GET_USER_ID');
     client_socket.on('REQUEST_SET_USER_ID', ({user_id}) => OnUserSetUserId(user_id, client_socket, custom_room));    
+    client_socket.on('REQUEST_KICK_USER', ({requesting_user_id, user_id}) => OnRequestKickUser(requesting_user_id, user_id, client_socket, custom_room));        
 }
 
 const OnUserSetUserId = async (user_id, client_socket, custom_room) => {
@@ -138,6 +139,36 @@ const OnRequestJoinTeam = (user_id, team, client_socket, custom_room) => {
         user.team = team; //change team
     }
 
+    //update all
+    DispatchRoomStateUpdate(custom_room);
+}
+
+const OnRequestKickUser = (requesting_user_id, user_id, client_socket, custom_room) => {
+
+    //check permissinos
+    if(custom_room.owner_id != requesting_user_id) {
+        console.log('no permissions');
+        return;
+    }
+    //get this player object
+    let user_to_kick = custom_room.users.find(p=>p.id == user_id);
+
+    //kick user    
+    let clients = custom_room.namespace.clients();
+    if(!clients) {
+        console.log('no clients');
+        return;
+    }
+    let sockets = clients.sockets;
+    if(!sockets) {
+        console.log('no sockets');
+        return;
+    }
+    let socket_to_kick = sockets[user_to_kick.socket_id];
+    if(socket_to_kick) {
+
+        socket_to_kick.disconnect();
+    }      
     //update all
     DispatchRoomStateUpdate(custom_room);
 }
